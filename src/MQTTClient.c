@@ -19,8 +19,8 @@
  *    Ian Craggs - fix for bug 413429 - connectionLost not called
  *    Ian Craggs - fix for bug 421103 - trying to write to same socket, in publish/retries
  *    Ian Craggs - fix for bug 419233 - mutexes not reporting errors
- *    Ian Craggs - fix for bug 420851
- *    Ian Craggs - fix for bug 432903 - queue persistence
+ *    Ian Craggs - fix for bug #420851
+ *    Ian Craggs - MQTT 3.1.1 support
  *******************************************************************************/
 
 /**
@@ -813,7 +813,7 @@ int MQTTClient_connectURIVersion(MQTTClient handle, MQTTClient_connectOptions* o
 					goto exit;
 				}
 				else if (rc == 1) 
-        {
+				{
 					rc = MQTTCLIENT_SUCCESS;
 					m->c->connect_state = 3;
 					if (MQTTPacket_send_connect(m->c, MQTTVersion) == SOCKET_ERROR)
@@ -821,7 +821,7 @@ int MQTTClient_connectURIVersion(MQTTClient handle, MQTTClient_connectOptions* o
 						rc = SOCKET_ERROR;
 						goto exit;
 					}
-					if(!m->c->cleansession && m->c->session == NULL)
+					if (!m->c->cleansession && m->c->session == NULL)
 						m->c->session = SSL_get1_session(m->c->net.ssl);
 				}
 			}
@@ -910,7 +910,7 @@ exit:
 	if (rc != MQTTCLIENT_SUCCESS)
 	{
 		Thread_unlock_mutex(mqttclient_mutex);
-    MQTTClient_disconnect1(handle, 0, 0, (MQTTVersion == 3)); /* not "internal" because we don't want to call connection lost */
+		MQTTClient_disconnect1(handle, 0, 0, (MQTTVersion == 3)); /* not "internal" because we don't want to call connection lost */
 		Thread_lock_mutex(mqttclient_mutex);
 	}
 	FUNC_EXIT_RC(rc);
@@ -1006,8 +1006,8 @@ int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options,
 	m->c->password = options->password;
 	m->c->retryInterval = options->retryInterval;
 
-  if ((rc = MQTTClient_connectURIVersion(handle, options, serverURI, 4	, start, millisecsTimeout)) != MQTTCLIENT_SUCCESS)
-    rc = MQTTClient_connectURIVersion(handle, options, serverURI, 3, start, millisecsTimeout);
+	if ((rc = MQTTClient_connectURIVersion(handle, options, serverURI, 4	, start, millisecsTimeout)) != MQTTCLIENT_SUCCESS)
+		rc = MQTTClient_connectURIVersion(handle, options, serverURI, 3, start, millisecsTimeout);
 
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -1138,15 +1138,15 @@ int MQTTClient_disconnect1(MQTTClient handle, int timeout, int internal, int sto
 	if (Thread_check_sem(m->connect_sem))
 		Thread_post_sem(m->connect_sem);
 	if (Thread_check_sem(m->connack_sem))
-    Thread_post_sem(m->connect_sem);
+		Thread_post_sem(m->connect_sem);
 	if (Thread_check_sem(m->suback_sem))
 		Thread_post_sem(m->suback_sem);
 	if (Thread_check_sem(m->unsuback_sem))
 		Thread_post_sem(m->unsuback_sem);
 
 exit:
-  if (stop)
-  	MQTTClient_stop();
+	if (stop)
+		MQTTClient_stop();
 	if (internal && m->cl && was_connected)
 	{
 		Log(TRACE_MIN, -1, "Calling connectionLost for client %s", m->c->clientID);

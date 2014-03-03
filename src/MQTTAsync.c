@@ -17,8 +17,8 @@
  *    Ian Craggs - fix for bug 413429 - connectionLost not called
  *    Ian Craggs - fix for bug 415042 - using already freed structure
  *    Ian Craggs - fix for bug 419233 - mutexes not reporting errors
- *    Ian Craggs - fix for bug 420851
- *    Ian Craggs - fix for bug 432903 - queue persistence
+ *    Ian Craggs - fix for bug #420851
+ *    Ian Craggs - MQTT 3.1.1 support
  *******************************************************************************/
 
 /**
@@ -975,12 +975,11 @@ void MQTTAsync_processCommand()
 
 			if (command->command.details.conn.serverURIcount > 0)
 			{
-        if (command->command.details.conn.MQTTVersion == 3)
-        {
-          command->command.details.conn.currentURI++;
-          command->command.details.conn.MQTTVersion = 4;
-        }
-          
+				if (command->command.details.conn.MQTTVersion == 3)
+				{
+					command->command.details.conn.currentURI++;
+					command->command.details.conn.MQTTVersion = 4;
+				}          
 				serverURI = command->command.details.conn.serverURIs[command->command.details.conn.currentURI];
 					
 				if (strncmp(URI_TCP, serverURI, strlen(URI_TCP)) == 0)
@@ -1174,7 +1173,7 @@ void MQTTAsync_checkTimeouts()
 		/* check connect timeout */
 		if (m->c->connect_state != 0 && MQTTAsync_elapsed(m->connect.start_time) > (m->connect.details.conn.timeout * 1000))
 		{
-      if (MQTTAsync_checkConn(&m->connect))
+			if (MQTTAsync_checkConn(&m->connect))
 			{
 				MQTTAsync_queuedCommand* conn;
 				
@@ -1184,7 +1183,7 @@ void MQTTAsync_checkTimeouts()
 				memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
 				conn->client = m;
 				conn->command = m->connect;
-  			Log(TRACE_MIN, -1, "Connect failed, more to try");
+				Log(TRACE_MIN, -1, "Connect failed, more to try");
 				MQTTAsync_addCommand(conn, sizeof(m->connect));
 			}
 			else
@@ -1507,7 +1506,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 					}
 					else
 					{
-            if (MQTTAsync_checkConn(&m->connect))
+						if (MQTTAsync_checkConn(&m->connect))
 						{
 							MQTTAsync_queuedCommand* conn;
 							
@@ -2417,7 +2416,7 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 exit:
 	if ((rc != 0 && m->c->connect_state != 2) || (rc == SSL_FATAL))
 	{
-    if (MQTTAsync_checkConn(&m->connect))
+		if (MQTTAsync_checkConn(&m->connect))
 		{
 			MQTTAsync_queuedCommand* conn;
 				
@@ -2495,7 +2494,7 @@ MQTTPacket* MQTTAsync_cycle(int* sock, unsigned long timeout, int* rc)
 			if ((m->c->connect_state == 3) && (*rc == SOCKET_ERROR))
 			{
 				Log(TRACE_MINIMUM, -1, "CONNECT sent but MQTTPacket_Factory has returned SOCKET_ERROR");
-        if (MQTTAsync_checkConn(&m->connect))
+				if (MQTTAsync_checkConn(&m->connect))
 				{
 					MQTTAsync_queuedCommand* conn;
 				
@@ -2505,7 +2504,7 @@ MQTTPacket* MQTTAsync_cycle(int* sock, unsigned long timeout, int* rc)
 					memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
 					conn->client = m;
 					conn->command = m->connect; 
-    			Log(TRACE_MIN, -1, "Connect failed, more to try");
+					Log(TRACE_MIN, -1, "Connect failed, more to try");
 					MQTTAsync_addCommand(conn, sizeof(m->connect));
 				}
 				else
