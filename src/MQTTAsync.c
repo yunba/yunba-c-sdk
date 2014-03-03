@@ -249,6 +249,7 @@ typedef struct
 			int serverURIcount;
 			char** serverURIs;
 			int currentURI;
+      int MQTTVersion;
 		} conn;
 	} details;
 } MQTTAsync_command;
@@ -330,6 +331,18 @@ void MQTTAsync_unlock_mutex(mutex_type amutex)
 	int rc = Thread_unlock_mutex(amutex);
 	if (rc != 0)
 		Log(LOG_ERROR, 0, "Error %d unlocking mutex", rc);
+}
+
+
+int MQTTAsync_checkConn(MQTTAsync_command* command)
+{
+  int rc;
+
+  FUNC_ENTRY;
+  rc = command->details.conn.currentURI < command->details.conn.serverURIcount ||
+      command->details.conn.MQTTVersion == 4;
+  FUNC_EXIT_RC(rc);
+  return rc;
 }
 
 
@@ -959,10 +972,16 @@ void MQTTAsync_processCommand()
 		else
 		{
 			char* serverURI = command->client->serverURI;
-			
+
 			if (command->command.details.conn.serverURIcount > 0)
 			{
-				serverURI = command->command.details.conn.serverURIs[command->command.details.conn.currentURI++];
+        if (command->command.details.conn.MQTTVersion == 3)
+        {
+          command->command.details.conn.currentURI++;
+          command->command.details.conn.MQTTVersion = 4;
+        }
+          
+				serverURI = command->command.details.conn.serverURIs[command->command.details.conn.currentURI];
 					
 				if (strncmp(URI_TCP, serverURI, strlen(URI_TCP)) == 0)
 					serverURI += strlen(URI_TCP);
@@ -975,11 +994,16 @@ void MQTTAsync_processCommand()
 #endif
 			}
 
-			Log(TRACE_MIN, -1, "Connecting to serverURI %s", serverURI);
+      if (command->command.details.conn.MQTTVersion == 0)
+        command->command.details.conn.MQTTVersion = 4;
+      else if (command->command.details.conn.MQTTVersion == 4)
+        command->command.details.conn.MQTTVersion = 3;
+
+			Log(TRACE_MIN, -1, "Connecting to serverURI %s with MQTT version %d", serverURI, command->command.details.conn.MQTTVersion);
 #if defined(OPENSSL)
-			rc = MQTTProtocol_connect(serverURI, command->client->c, command->client->ssl);
+			rc = MQTTProtocol_connect(serverURI, command->client->c, command->client->ssl, command->command.details.conn.MQTTVersion);
 #else
-			rc = MQTTProtocol_connect(serverURI, command->client->c);
+			rc = MQTTProtocol_connect(serverURI, command->client->c, command->command.details.conn.MQTTVersion);
 #endif
 			if (command->client->c->connect_state == 0)
 				rc = SOCKET_ERROR;
@@ -1096,12 +1120,10 @@ void MQTTAsync_processCommand()
 		else
 			MQTTAsync_disconnect_internal(command->client, 0);
 			
-		if (command->command.type == CONNECT &&
-			command->command.details.conn.currentURI < command->command.details.conn.serverURIcount)
+		if (command->command.type == CONNECT && MQTTAsync_checkConn(&command->command))
 		{
+			Log(TRACE_MIN, -1, "Connect failed, more to try");
 			/* put the connect command back to the head of the command queue, using the next serverURI */
-			Log(TRACE_MIN, -1, "Connect failed, now trying %s", 
-				command->command.details.conn.serverURIs[command->command.details.conn.currentURI]);
 			rc = MQTTAsync_addCommand(command, sizeof(command->command.details.conn));
 		}
 		else
@@ -1152,7 +1174,7 @@ void MQTTAsync_checkTimeouts()
 		/* check connect timeout */
 		if (m->c->connect_state != 0 && MQTTAsync_elapsed(m->connect.start_time) > (m->connect.details.conn.timeout * 1000))
 		{
-			if (m->connect.details.conn.currentURI < m->connect.details.conn.serverURIcount)
+      if (MQTTAsync_checkConn(&m->connect))
 			{
 				MQTTAsync_queuedCommand* conn;
 				
@@ -1161,9 +1183,8 @@ void MQTTAsync_checkTimeouts()
 				conn = malloc(sizeof(MQTTAsync_queuedCommand));
 				memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
 				conn->client = m;
-				conn->command = m->connect; 
-				Log(TRACE_MIN, -1, "Connect failed, now trying %s", 
-					m->connect.details.conn.serverURIs[m->connect.details.conn.currentURI]);
+				conn->command = m->connect;
+  			Log(TRACE_MIN, -1, "Connect failed, more to try");
 				MQTTAsync_addCommand(conn, sizeof(m->connect));
 			}
 			else
@@ -1476,7 +1497,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 					{
 						if (m->connect.details.conn.serverURIcount > 0)
 							Log(TRACE_MIN, -1, "Connect succeeded to %s", 
-								m->connect.details.conn.serverURIs[m->connect.details.conn.currentURI - 1]);
+								m->connect.details.conn.serverURIs[m->connect.details.conn.currentURI]);
 						MQTTAsync_freeConnect(m->connect);
 						if (m->connect.onSuccess)
 						{
@@ -1486,7 +1507,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 					}
 					else
 					{
-						if (m->connect.details.conn.currentURI < m->connect.details.conn.serverURIcount)
+            if (MQTTAsync_checkConn(&m->connect))
 						{
 							MQTTAsync_queuedCommand* conn;
 							
@@ -1496,8 +1517,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 							memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
 							conn->client = m;
 							conn->command = m->connect; 
-							Log(TRACE_MIN, -1, "Connect failed, now trying %s", 
-								m->connect.details.conn.serverURIs[m->connect.details.conn.currentURI]);
+							Log(TRACE_MIN, -1, "Connect failed, more to try");
 							MQTTAsync_addCommand(conn, sizeof(m->connect));
 						}
 						else
@@ -2351,10 +2371,11 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 					rc = SOCKET_ERROR;
 					goto exit;
 				}
-				else if (rc == 1) {
+				else if (rc == 1) 
+        {
 					rc = MQTTCLIENT_SUCCESS;
 					m->c->connect_state = 3;
-					if (MQTTPacket_send_connect(m->c) == SOCKET_ERROR)
+					if (MQTTPacket_send_connect(m->c, m->connect.details.conn.MQTTVersion) == SOCKET_ERROR)
 					{
 						rc = SOCKET_ERROR;
 						goto exit;
@@ -2373,7 +2394,7 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 		{
 #endif
 			m->c->connect_state = 3; /* TCP/SSL connect completed, in which case send the MQTT connect packet */
-			if ((rc = MQTTPacket_send_connect(m->c)) == SOCKET_ERROR)
+			if ((rc = MQTTPacket_send_connect(m->c, m->connect.details.conn.MQTTVersion)) == SOCKET_ERROR)
 				goto exit;
 #if defined(OPENSSL)
 		}
@@ -2388,7 +2409,7 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 		if(!m->c->cleansession && m->c->session == NULL)
 			m->c->session = SSL_get1_session(m->c->net.ssl);
 		m->c->connect_state = 3; /* SSL connect completed, in which case send the MQTT connect packet */
-		if ((rc = MQTTPacket_send_connect(m->c)) == SOCKET_ERROR)
+		if ((rc = MQTTPacket_send_connect(m->c, m->connect.details.conn.MQTTVersion)) == SOCKET_ERROR)
 			goto exit;
 	}
 #endif
@@ -2396,7 +2417,7 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 exit:
 	if ((rc != 0 && m->c->connect_state != 2) || (rc == SSL_FATAL))
 	{
-		if (m->connect.details.conn.currentURI < m->connect.details.conn.serverURIcount)
+    if (MQTTAsync_checkConn(&m->connect))
 		{
 			MQTTAsync_queuedCommand* conn;
 				
@@ -2406,8 +2427,7 @@ exit:
 			memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
 			conn->client = m;
 			conn->command = m->connect; 
-			Log(TRACE_MIN, -1, "Connect failed, now trying %s", 
-				m->connect.details.conn.serverURIs[m->connect.details.conn.currentURI]);
+			Log(TRACE_MIN, -1, "Connect failed, more to try");
 			MQTTAsync_addCommand(conn, sizeof(m->connect));
 		}
 		else
@@ -2475,7 +2495,7 @@ MQTTPacket* MQTTAsync_cycle(int* sock, unsigned long timeout, int* rc)
 			if ((m->c->connect_state == 3) && (*rc == SOCKET_ERROR))
 			{
 				Log(TRACE_MINIMUM, -1, "CONNECT sent but MQTTPacket_Factory has returned SOCKET_ERROR");
-				if (m->connect.details.conn.currentURI < m->connect.details.conn.serverURIcount)
+        if (MQTTAsync_checkConn(&m->connect))
 				{
 					MQTTAsync_queuedCommand* conn;
 				
@@ -2485,8 +2505,7 @@ MQTTPacket* MQTTAsync_cycle(int* sock, unsigned long timeout, int* rc)
 					memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
 					conn->client = m;
 					conn->command = m->connect; 
-					Log(TRACE_MIN, -1, "Connect failed, now trying %s", 
-						m->connect.details.conn.serverURIs[m->connect.details.conn.currentURI]);
+    			Log(TRACE_MIN, -1, "Connect failed, more to try");
 					MQTTAsync_addCommand(conn, sizeof(m->connect));
 				}
 				else
