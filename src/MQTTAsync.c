@@ -2414,7 +2414,7 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 #endif
 
 exit:
-	if ((rc != 0 && m->c->connect_state != 2) || (rc == SSL_FATAL))
+	if ((rc != 0 && rc != TCPSOCKET_INTERRUPTED && m->c->connect_state != 2) || (rc == SSL_FATAL))
 	{
 		if (MQTTAsync_checkConn(&m->connect))
 		{
