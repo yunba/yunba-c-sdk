@@ -248,7 +248,7 @@ int MQTTPacket_decode(networkHandles* net, int* value);
 int readInt(char** pptr);
 uint64_t readInt64(char** pptr);
 char* readUTF(char** pptr, char* enddata);
-char readChar(char** pptr);
+unsigned char readChar(char** pptr);
 void writeChar(char** pptr, char c);
 void writeInt(char** pptr, int anInt);
 void writeInt64(char** pptr, uint64_t anInt);
