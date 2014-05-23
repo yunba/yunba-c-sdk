@@ -86,3 +86,12 @@ Discussion of the Paho clients takes place on the [Eclipse paho-dev mailing list
 General questions about the MQTT protocol are discussed in the [MQTT Google Group](https://groups.google.com/forum/?hl=en-US&fromgroups#!forum/mqtt).
 
 There is much more information available via the [MQTT community site](http://mqtt.org).
+
+
+SAMPLE:
+make
+cd build/output/
+## do subscription in a new terminal as below, received messages will be shown in terminal
+./samples/stdoutsub <topic> --host <host> --clientid <clientId> --username <username> --password <password>
+## do publication in a new terminal as below
+./samples/stdinpub <topic> --host <host> --clientid <clientId> --username <username> --password <password>
