@@ -180,7 +180,7 @@ int MQTTPacket_send(networkHandles* net, Header header, char* buffer, int buflen
 	if (header.bits.type == PUBREL)
 	{
 		char* ptraux = buffer;
-		int msgId = readInt(&ptraux);
+		uint64_t msgId = readInt64(&ptraux);
 		rc = MQTTPersistence_put(net->socket, buf, buf0len, 1, &buffer, &buflen,
 			header.bits.type, msgId, 0);
 	}
@@ -228,7 +228,7 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 	if (header.bits.type == PUBLISH && header.bits.qos != 0)
 	{   /* persist PUBLISH QoS1 and Qo2 */
 		char *ptraux = buffers[2];
-		int msgId = readInt(&ptraux);
+		uint64_t msgId = readInt64(&ptraux);
 		rc = MQTTPersistence_put(net->socket, buf, buf0len, count, buffers, buflens,
 			header.bits.type, msgId, 0);
 	}
@@ -327,6 +327,21 @@ int readInt(char** pptr)
 	return len;
 }
 
+/**
+ * Calculates an 64bit-integer from eight bytes read from the input buffer
+ * @param pptr pointer to the input buffer - incremented by the number of bytes used & returned
+ * @return the integer value calculated
+ */
+uint64_t readInt64(char** pptr)
+{
+	char* ptr = *pptr;
+    uint64_t len = (uint64_t)ptr[0]<<0x38 | (uint64_t)ptr[1]<<0x30
+        | (uint64_t)ptr[2]<<0x28 | (uint64_t)ptr[3]<<0x20
+        | (uint64_t)ptr[4]<<0x18 | (uint64_t)ptr[5]<<0x10
+        | (uint64_t)ptr[6]<<0x8 | (uint64_t)ptr[7]<<0;
+    *pptr += 8;
+	return len;
+}
 
 /**
  * Reads a "UTF" string from the input buffer.  UTF as in the MQTT v3 spec which really means
@@ -416,6 +431,22 @@ void writeInt(char** pptr, int anInt)
 	(*pptr)++;
 }
 
+/**
+ * Writes an 32/64bit-integer as 4/8 bytes to an output buffer.
+ * @param pptr pointer to the output buffer - incremented by the number of bytes used & returned
+ * @param anInt the integer to write
+ */
+void writeInt32(char** pptr, uint32_t anInt)
+{
+    writeInt(pptr, (anInt / 0x10000));
+    writeInt(pptr, (anInt % 0x10000));
+}
+
+void writeInt64(char** pptr, uint64_t anInt)
+{
+    writeInt32(pptr, (anInt / 0x100000000));
+    writeInt32(pptr, (anInt % 0x100000000));
+}
 
 /**
  * Writes a "UTF" string to an output buffer.  Converts C string to length-delimited.
@@ -488,7 +519,7 @@ void* MQTTPacket_publish(unsigned char aHeader, char* data, int datalen)
 		goto exit;
 	}
 	if (pack->header.bits.qos > 0)  /* Msgid only exists for QoS 1 or 2 */
-		pack->msgId = readInt(&curdata);
+		pack->msgId = readInt64(&curdata);
 	else
 		pack->msgId = 0;
 	pack->payload = curdata;
@@ -645,7 +676,7 @@ void* MQTTPacket_ack(unsigned char aHeader, char* data, int datalen)
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
-	pack->msgId = readInt(&curdata);
+	pack->msgId = readInt64(&curdata);
 	FUNC_EXIT;
 	return pack;
 }
@@ -676,11 +707,11 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 	header.bits.retain = retained;
 	if (qos > 0)
 	{
-		char *buf = malloc(2);
+		char *buf = malloc(8);
 		char *ptr = buf;
 		char* bufs[4] = {topiclen, pack->topic, buf, pack->payload};
 		int lens[4] = {2, strlen(pack->topic), 2, pack->payloadlen};
-		writeInt(&ptr, pack->msgId);
+		writeInt64(&ptr, pack->msgId);
 		ptr = topiclen;
 		writeInt(&ptr, lens[1]);
 		rc = MQTTPacket_sends(net, header, 4, bufs, lens);

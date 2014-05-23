@@ -209,7 +209,7 @@ int MQTTPersistence_restore(Clients *c)
 						Publish* publish = (Publish*)pack;
 						Messages* msg = NULL;
 						char *key = malloc(MESSAGE_FILENAME_LENGTH + 1);
-						sprintf(key, "%s%d", PERSISTENCE_PUBREL, publish->msgId);
+						sprintf(key, "%s%llu", PERSISTENCE_PUBREL, publish->msgId);
 						msg = MQTTProtocol_createMessage(publish, &msg, publish->header.bits.qos, publish->header.bits.retain);
 						if ( c->persistence->pcontainskey(c->phandle, key) == 0 )
 							/* PUBLISH Qo2 and PUBREL sent */
@@ -228,7 +228,7 @@ int MQTTPersistence_restore(Clients *c)
 						/* orphaned PUBRELs ? */
 						Pubrel* pubrel = (Pubrel*)pack;
 						char *key = malloc(MESSAGE_FILENAME_LENGTH + 1);
-						sprintf(key, "%s%d", PERSISTENCE_PUBLISH_SENT, pubrel->msgId);
+						sprintf(key, "%s%llu", PERSISTENCE_PUBLISH_SENT, pubrel->msgId);
 						if ( c->persistence->pcontainskey(c->phandle, key) != 0 )
 							rc = c->persistence->premove(c->phandle, msgkeys[i]);
 						free(pubrel);
@@ -334,7 +334,7 @@ void MQTTPersistence_insertInOrder(List* list, void* content, int size)
  * @return 0 if success, #MQTTCLIENT_PERSISTENCE_ERROR otherwise.
  */
 int MQTTPersistence_put(int socket, char* buf0, int buf0len, int count,
-								 char** buffers, int* buflens, int htype, int msgId, int scr )
+								 char** buffers, int* buflens, int htype, uint64_t msgId, int scr )
 {
 	int rc = 0;
 	extern ClientStates* bstate;
@@ -364,12 +364,12 @@ int MQTTPersistence_put(int socket, char* buf0, int buf0len, int count,
 		if ( scr == 0 )
 		{  /* sending */
 			if (htype == PUBLISH)   /* PUBLISH QoS1 and QoS2*/
-				sprintf(key, "%s%d", PERSISTENCE_PUBLISH_SENT, msgId);
+				sprintf(key, "%s%llu", PERSISTENCE_PUBLISH_SENT, msgId);
 			if (htype == PUBREL)  /* PUBREL */
-				sprintf(key, "%s%d", PERSISTENCE_PUBREL, msgId);
+				sprintf(key, "%s%llu", PERSISTENCE_PUBREL, msgId);
 		}
 		if ( scr == 1 )  /* receiving PUBLISH QoS2 */
-			sprintf(key, "%s%d", PERSISTENCE_PUBLISH_RECEIVED, msgId);
+			sprintf(key, "%s%llu", PERSISTENCE_PUBLISH_RECEIVED, msgId);
 
 		rc = client->persistence->pput(client->phandle, key, nbufs, bufs, lens);
 
@@ -392,7 +392,7 @@ int MQTTPersistence_put(int socket, char* buf0, int buf0len, int count,
  * @param msgId the message ID.
  * @return 0 if success, #MQTTCLIENT_PERSISTENCE_ERROR otherwise.
  */
-int MQTTPersistence_remove(Clients* c, char *type, int qos, int msgId)
+int MQTTPersistence_remove(Clients* c, char *type, int qos, uint64_t msgId)
 {
 	int rc = 0;
 
@@ -402,14 +402,14 @@ int MQTTPersistence_remove(Clients* c, char *type, int qos, int msgId)
 		char *key = malloc(MESSAGE_FILENAME_LENGTH + 1);
 		if ( (strcmp(type,PERSISTENCE_PUBLISH_SENT) == 0) && qos == 2 )
 		{
-			sprintf(key, "%s%d", PERSISTENCE_PUBLISH_SENT, msgId) ;
+			sprintf(key, "%s%llu", PERSISTENCE_PUBLISH_SENT, msgId) ;
 			rc = c->persistence->premove(c->phandle, key);
-			sprintf(key, "%s%d", PERSISTENCE_PUBREL, msgId) ;
+			sprintf(key, "%s%llu", PERSISTENCE_PUBREL, msgId) ;
 			rc = c->persistence->premove(c->phandle, key);
 		}
 		else /* PERSISTENCE_PUBLISH_SENT && qos == 1 */
 		{    /* or PERSISTENCE_PUBLISH_RECEIVED */
-			sprintf(key, "%s%d", type, msgId) ;
+			sprintf(key, "%s%llu", type, msgId) ;
 			rc = c->persistence->premove(c->phandle, key);
 		}
 		free(key);

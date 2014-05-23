@@ -15,7 +15,7 @@
  *******************************************************************************/
 
 /** 8.3 filesystem */
-#define MESSAGE_FILENAME_LENGTH 8    
+#define MESSAGE_FILENAME_LENGTH 30    
 /** Extension of the filename */
 #define MESSAGE_FILENAME_EXTENSION ".msg"
 

@@ -139,7 +139,7 @@ typedef struct
 typedef struct
 {
 	Header header;	/**< MQTT header byte */
-	int msgId;		/**< MQTT message id */
+	uint64_t msgId;		/**< MQTT message id */
 	List* topics;	/**< list of topic strings */
 	List* qoss;		/**< list of corresponding QoSs */
 	int noTopics;	/**< topic and qos count */
@@ -152,7 +152,7 @@ typedef struct
 typedef struct
 {
 	Header header;	/**< MQTT header byte */
-	int msgId;		/**< MQTT message id */
+	uint64_t msgId;		/**< MQTT message id */
 	List* qoss;		/**< list of granted QoSs */
 } Suback;
 
@@ -163,7 +163,7 @@ typedef struct
 typedef struct
 {
 	Header header;	/**< MQTT header byte */
-	int msgId;		/**< MQTT message id */
+	uint64_t msgId;		/**< MQTT message id */
 	List* topics;	/**< list of topic strings */
 	int noTopics;	/**< topic count */
 } Unsubscribe;
@@ -177,7 +177,7 @@ typedef struct
 	Header header;	/**< MQTT header byte */
 	char* topic;	/**< topic string */
 	int topiclen;
-	int msgId;		/**< MQTT message id */
+	uint64_t msgId;		/**< MQTT message id */
 	char* payload;	/**< binary payload, length delimited */
 	int payloadlen;	/**< payload length */
 } Publish;
@@ -189,7 +189,7 @@ typedef struct
 typedef struct
 {
 	Header header;	/**< MQTT header byte */
-	int msgId;		/**< MQTT message id */
+	uint64_t msgId;		/**< MQTT message id */
 } Ack;
 
 typedef Ack Puback;
@@ -201,10 +201,12 @@ typedef Ack Unsuback;
 int MQTTPacket_encode(char* buf, int length);
 int MQTTPacket_decode(networkHandles* net, int* value);
 int readInt(char** pptr);
+uint64_t readInt64(char** pptr);
 char* readUTF(char** pptr, char* enddata);
 char readChar(char** pptr);
 void writeChar(char** pptr, char c);
 void writeInt(char** pptr, int anInt);
+void writeInt64(char** pptr, uint64_t anInt);
 void writeUTF(char** pptr, char* string);
 
 char* MQTTPacket_name(int ptype);

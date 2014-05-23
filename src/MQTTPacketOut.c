@@ -59,7 +59,7 @@ int MQTTPacket_send_connect(Clients* client)
 
 	ptr = buf = malloc(len);
 	writeUTF(&ptr, "MQIsdp");
-	writeChar(&ptr, (char)3);
+	writeChar(&ptr, (char)0x13);
 
 	packet.flags.all = 0;
 	packet.flags.bits.cleanstart = client->cleansession;
@@ -162,12 +162,12 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, int msgid, int dup, netw
 	header.bits.qos = 1;
 	header.bits.retain = 0;
 
-	datalen = 2 + topics->count * 3; // utf length + char qos == 3
+	datalen = 8 + topics->count * 3; // utf length + char qos == 3
 	while (ListNextElement(topics, &elem))
 		datalen += strlen((char*)(elem->content));
 	ptr = data = malloc(datalen);
 
-	writeInt(&ptr, msgid);
+	writeInt64(&ptr, msgid);
 	elem = NULL;
 	while (ListNextElement(topics, &elem))
 	{
@@ -234,12 +234,12 @@ int MQTTPacket_send_unsubscribe(List* topics, int msgid, int dup, networkHandles
 	header.bits.qos = 1;
 	header.bits.retain = 0;
 
-	datalen = 2 + topics->count * 2; // utf length == 2
+	datalen = 8 + topics->count * 2; // utf length == 2
 	while (ListNextElement(topics, &elem))
 		datalen += strlen((char*)(elem->content));
 	ptr = data = malloc(datalen);
 
-	writeInt(&ptr, msgid);
+	writeInt64(&ptr, msgid);
 	elem = NULL;
 	while (ListNextElement(topics, &elem))
 		writeUTF(&ptr, (char*)(elem->content));

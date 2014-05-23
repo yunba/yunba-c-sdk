@@ -20,6 +20,7 @@
 #define CLIENTS_H
 
 #include <time.h>
+#include <inttypes.h>
 #if defined(OPENSSL)
 #if defined(WIN32) || defined(WIN64)
 #include "winsock2.h"

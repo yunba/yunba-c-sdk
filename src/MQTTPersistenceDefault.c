@@ -721,7 +721,7 @@ int main (int argc, char *argv[])
 	char *serverURI = "127.0.0.1:1883";
 
 	char *stem = MSTEM;
-	int msgId, i;
+	uint64_t msgId, i;
 	int nm[NDEL] = {5 , 8};  /* msgIds to get and remove */
 
 	char *key;
@@ -745,7 +745,7 @@ int main (int argc, char *argv[])
 	for(msgId=0;msgId<NMSGS;msgId++)
 	{
 		key = malloc(MESSAGE_FILENAME_LENGTH + 1);
-		sprintf(key, "%s%d", stem, msgId);
+		sprintf(key, "%s%llu", stem, msgId);
 		rc = pstput(handle, key, nbufs, bufs, buflens);
 		printf("%s Adding message %s\n", RC, key);
 		free(key);

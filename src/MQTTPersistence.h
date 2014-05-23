@@ -38,8 +38,8 @@ int MQTTPersistence_restore(Clients* c);
 void* MQTTPersistence_restorePacket(char* buffer, int buflen);
 void MQTTPersistence_insertInOrder(List* list, void* content, int size);
 int MQTTPersistence_put(int socket, char* buf0, int buf0len, int count, 
-								 char** buffers, int* buflens, int htype, int msgId, int scr);
-int MQTTPersistence_remove(Clients* c, char* type, int qos, int msgId);
+								 char** buffers, int* buflens, int htype, uint64_t msgId, int scr);
+int MQTTPersistence_remove(Clients* c, char* type, int qos, uint64_t msgId);
 void MQTTPersistence_wrapMsgID(Clients *c);
 
 typedef struct

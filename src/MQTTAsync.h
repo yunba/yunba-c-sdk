@@ -87,6 +87,8 @@
 #endif
 
 #include <stdio.h>
+#include <inttypes.h>
+
 /// @endcond
 
 #if !defined(NO_PERSISTENCE)
@@ -220,7 +222,7 @@ typedef struct
 	/** The message identifier is normally reserved for internal use by the
       * MQTT client and server. 
       */
-	int msgid;
+	uint64_t msgid;
 } MQTTAsync_message;
 
 #define MQTTAsync_message_initializer { {'M', 'Q', 'T', 'M'}, 0, 0, NULL, 0, 0, 0, 0 }
