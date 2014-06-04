@@ -92,6 +92,6 @@ SAMPLE:
 make
 cd build/output/
 ## do subscription in a new terminal as below, received messages will be shown in terminal
-./samples/stdoutsub <topic> --host <host> --clientid <clientId> --username <username> --password <password>
+./samples/stdoutsub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1
 ## do publication in a new terminal as below
-./samples/stdinpub <topic> --host <host> --clientid <clientId> --username <username> --password <password>
+./samples/stdinpub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1

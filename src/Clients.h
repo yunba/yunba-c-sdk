@@ -84,7 +84,7 @@ typedef struct
 {
 	int qos;
 	int retain;
-	int msgid;
+	uint64_t msgid;
 	Publications *publish;
 	time_t lastTouch;		/**> used for retry and expiry */
 	char nextMessageType;	/**> PUBREC, PUBREL, PUBCOMP */

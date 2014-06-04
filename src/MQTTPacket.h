@@ -221,13 +221,13 @@ int MQTTPacket_send_disconnect(networkHandles* net, char* clientID);
 void* MQTTPacket_publish(unsigned char aHeader, char* data, int datalen);
 void MQTTPacket_freePublish(Publish* pack);
 int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, networkHandles* net, char* clientID);
-int MQTTPacket_send_puback(int msgid, networkHandles* net, char* clientID);
+int MQTTPacket_send_puback(uint64_t msgid, networkHandles* net, char* clientID);
 void* MQTTPacket_ack(unsigned char aHeader, char* data, int datalen);
 
 void MQTTPacket_freeSuback(Suback* pack);
-int MQTTPacket_send_pubrec(int msgid, networkHandles* net, char* clientID);
-int MQTTPacket_send_pubrel(int msgid, int dup, networkHandles* net, char* clientID);
-int MQTTPacket_send_pubcomp(int msgid, networkHandles* net, char* clientID);
+int MQTTPacket_send_pubrec(uint64_t msgid, networkHandles* net, char* clientID);
+int MQTTPacket_send_pubrel(uint64_t msgid, int dup, networkHandles* net, char* clientID);
+int MQTTPacket_send_pubcomp(uint64_t msgid, networkHandles* net, char* clientID);
 
 void MQTTPacket_free_packet(MQTTPacket* pack);
 

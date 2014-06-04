@@ -175,7 +175,7 @@ typedef void* MQTTClient;
  * MQTTClient_waitForCompletion() and
  * MQTTClient_getPendingDeliveryTokens()).
  */
-typedef int MQTTClient_deliveryToken;
+typedef uint64_t MQTTClient_deliveryToken;
 typedef int MQTTClient_token;
 
 /**
@@ -237,7 +237,7 @@ typedef struct
 	/** The message identifier is normally reserved for internal use by the
       * MQTT client and server. 
       */
-	int msgid;
+	uint64_t msgid;
 } MQTTClient_message;
 
 #define MQTTClient_message_initializer { {'M', 'Q', 'T', 'M'}, 0, 0, NULL, 0, 0, 0, 0 }

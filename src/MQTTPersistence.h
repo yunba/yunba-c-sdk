@@ -51,7 +51,7 @@ typedef struct
 	int qos;
 	int retained;
 	int dup;
-	int msgid;
+	uint64_t msgid;
 } MQTTPersistence_message;
 
 typedef struct

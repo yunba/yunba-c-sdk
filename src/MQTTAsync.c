@@ -2510,7 +2510,7 @@ MQTTPacket* MQTTAsync_cycle(int* sock, unsigned long timeout, int* rc)
 				*rc = MQTTProtocol_handlePublishes(pack, *sock);
 			else if (pack->header.bits.type == PUBACK || pack->header.bits.type == PUBCOMP)
 			{
-				int msgid;
+				uint64_t msgid;
 
 				ack = (pack->header.bits.type == PUBCOMP) ? *(Pubcomp*)pack : *(Puback*)pack;
 				msgid = ack.msgId;

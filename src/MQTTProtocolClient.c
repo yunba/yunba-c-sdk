@@ -54,7 +54,7 @@ extern ClientStates* bstate;
 int messageIDCompare(void* a, void* b)
 {
 	Messages* msg = (Messages*)a;
-	return msg->msgid == *(int*)b;
+	return msg->msgid == *(uint64_t*)b;
 }
 
 
@@ -67,7 +67,7 @@ int messageIDCompare(void* a, void* b)
 int MQTTProtocol_assignMsgId(Clients* client)
 {
 	int start_msgid = client->msgID;
-	int msgid = start_msgid;
+	uint64_t msgid = start_msgid;
 
 	FUNC_ENTRY;
 	msgid = (msgid == MAX_MSG_ID) ? 1 : msgid + 1;

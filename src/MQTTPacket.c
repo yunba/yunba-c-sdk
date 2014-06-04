@@ -552,19 +552,19 @@ void MQTTPacket_freePublish(Publish* pack)
  * @param socket the open socket to send the data to
  * @return the completion code (e.g. TCPSOCKET_COMPLETE)
  */
-int MQTTPacket_send_ack(int type, int msgid, int dup, networkHandles *net)
+int MQTTPacket_send_ack(int type, uint64_t msgid, int dup, networkHandles *net)
 {
 	Header header;
 	int rc;
-	char *buf = malloc(2);
+	char *buf = malloc(8);
 	char *ptr = buf;
 
 	FUNC_ENTRY;
 	header.byte = 0;
 	header.bits.type = type;
 	header.bits.dup = dup;
-	writeInt(&ptr, msgid);
-	if ((rc = MQTTPacket_send(net, header, buf, 2)) != TCPSOCKET_INTERRUPTED)
+	writeInt64(&ptr, msgid);
+	if ((rc = MQTTPacket_send(net, header, buf, 8)) != TCPSOCKET_INTERRUPTED)
 		free(buf);
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -578,7 +578,7 @@ int MQTTPacket_send_ack(int type, int msgid, int dup, networkHandles *net)
  * @param clientID the string client identifier, only used for tracing
  * @return the completion code (e.g. TCPSOCKET_COMPLETE)
  */
-int MQTTPacket_send_puback(int msgid, networkHandles* net, char* clientID)
+int MQTTPacket_send_puback(uint64_t msgid, networkHandles* net, char* clientID)
 {
 	int rc = 0;
 
@@ -611,7 +611,7 @@ void MQTTPacket_freeSuback(Suback* pack)
  * @param clientID the string client identifier, only used for tracing
  * @return the completion code (e.g. TCPSOCKET_COMPLETE)
  */
-int MQTTPacket_send_pubrec(int msgid, networkHandles* net, char* clientID)
+int MQTTPacket_send_pubrec(uint64_t msgid, networkHandles* net, char* clientID)
 {
 	int rc = 0;
 
@@ -631,7 +631,7 @@ int MQTTPacket_send_pubrec(int msgid, networkHandles* net, char* clientID)
  * @param clientID the string client identifier, only used for tracing
  * @return the completion code (e.g. TCPSOCKET_COMPLETE)
  */
-int MQTTPacket_send_pubrel(int msgid, int dup, networkHandles* net, char* clientID)
+int MQTTPacket_send_pubrel(uint64_t msgid, int dup, networkHandles* net, char* clientID)
 {
 	int rc = 0;
 
@@ -650,7 +650,7 @@ int MQTTPacket_send_pubrel(int msgid, int dup, networkHandles* net, char* client
  * @param clientID the string client identifier, only used for tracing
  * @return the completion code (e.g. TCPSOCKET_COMPLETE)
  */
-int MQTTPacket_send_pubcomp(int msgid, networkHandles* net, char* clientID)
+int MQTTPacket_send_pubcomp(uint64_t msgid, networkHandles* net, char* clientID)
 {
 	int rc = 0;
 
@@ -710,7 +710,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 		char *buf = malloc(8);
 		char *ptr = buf;
 		char* bufs[4] = {topiclen, pack->topic, buf, pack->payload};
-		int lens[4] = {2, strlen(pack->topic), 2, pack->payloadlen};
+		int lens[4] = {2, strlen(pack->topic), 8, pack->payloadlen};
 		writeInt64(&ptr, pack->msgId);
 		ptr = topiclen;
 		writeInt(&ptr, lens[1]);
