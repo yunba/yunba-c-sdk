@@ -46,7 +46,7 @@ void connlost(void *context, char *cause)
 	printf("     cause: %s\n", cause);
 
 	printf("Reconnecting\n");
-	conn_opts.keepAliveInterval = 20;
+	conn_opts.keepAliveInterval = 300;
 	conn_opts.cleansession = 1;
 	if ((rc = MQTTAsync_connect(client, &conn_opts)) != MQTTASYNC_SUCCESS)
 	{
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
 
 	MQTTAsync_setCallbacks(client, NULL, connlost, msgarrvd, NULL);
 
-	conn_opts.keepAliveInterval = 20;
+	conn_opts.keepAliveInterval = 300;
 	conn_opts.cleansession = 1;
 	conn_opts.onSuccess = onConnect;
 	conn_opts.onFailure = onConnectFailure;
