@@ -30,7 +30,7 @@ volatile MQTTClient_deliveryToken deliveredtoken;
 
 void delivered(void *context, MQTTClient_deliveryToken dt)
 {
-    printf("Message with token value %d delivery confirmed\n", dt);
+    printf("Message with token value %llu delivery confirmed\n", dt);
     deliveredtoken = dt;
 }
 

@@ -108,6 +108,7 @@
 #endif
 
 #include <stdio.h>
+#include <inttypes.h>
 /// @endcond
 
 #if !defined(NO_PERSISTENCE)
