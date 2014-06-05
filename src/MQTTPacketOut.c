@@ -112,7 +112,7 @@ void* MQTTPacket_connack(unsigned char aHeader, char* data, int datalen)
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
-	readChar(&curdata);	/* reserved byte */
+	pack->flags.all = readChar(&curdata);
 	pack->rc = readChar(&curdata);
 	FUNC_EXIT;
 	return pack;

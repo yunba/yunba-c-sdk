@@ -22,7 +22,7 @@
  * @cond MQTTAsync_main
  * @mainpage Asynchronous MQTT client library for C
  * 
- * &copy; Copyright IBM Corp. 2009, 2013
+ * &copy; Copyright IBM Corp. 2009, 2014
  * 
  * @brief An Asynchronous MQTT client library for C.
  *
@@ -321,6 +321,13 @@ typedef struct
 			MQTTAsync_message message;
 			char* destinationName;
 		} pub;
+		/* For connect, the server connected to, MQTT version used, and sessionPresent flag */
+		struct
+		{
+			char* serverURI;
+			int MQTTVersion;
+			int sessionPresent;
+		} connect;
 	} alt;
 } MQTTAsync_successData;
 
