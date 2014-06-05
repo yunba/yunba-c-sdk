@@ -96,7 +96,7 @@ cd build/output/
 ## do publication in a new terminal as below
 ./samples/stdinpub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1
 
-
+Wifi小车控制需求
 传输协议
 Topic name: rocket
 
@@ -116,4 +116,3 @@ Topic name: rocket
 
 当用户按住上下左右按键时，需发送相应的控制字符g，b，l，r。当用户松开时，需发送控制字符s。
 当用户按中间按键时，需发送控制字符s。
-
