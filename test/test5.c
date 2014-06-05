@@ -633,7 +633,7 @@ int test1(struct Options options)
 		goto exit;
 	}
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -730,7 +730,7 @@ int test2a(struct Options options)
 	tc.subscribed = 0;
 	tc.testFinished = 0;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -841,7 +841,7 @@ int test2b(struct Options options)
 		goto exit;
 	}
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -937,7 +937,7 @@ int test2c(struct Options options)
 		goto exit;
 	}
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1028,7 +1028,7 @@ int test3a(struct Options options)
 	tc.subscribed = 0;
 	tc.testFinished = 0;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1156,7 +1156,7 @@ int test3b(struct Options options)
 	if (rc != MQTTASYNC_SUCCESS)
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1250,7 +1250,7 @@ int test4(struct Options options)
 	tc.subscribed = 0;
 	tc.testFinished = 0;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1383,7 +1383,7 @@ int test5a(struct Options options)
 	tc.subscribed = 0;
 	tc.testFinished = 0;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1516,7 +1516,7 @@ int test5b(struct Options options)
 	tc.subscribed = 0;
 	tc.testFinished = 0;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1641,7 +1641,7 @@ int test5c(struct Options options)
 	if (rc != MQTTASYNC_SUCCESS)
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1744,7 +1744,7 @@ int test6(struct Options options)
 				asyncTestMessageArrived, NULL);
 		assert("Good rc from setCallbacks", rc == MQTTASYNC_SUCCESS, "rc was %d", rc);
 
-		opts.keepAliveInterval = 20;
+		opts.keepAliveInterval = 300;
 		opts.cleansession = 1;
 		opts.username = "testuser";
 		opts.password = "testpassword";
@@ -1976,7 +1976,7 @@ int test7(struct Options options)
 	tc.subscribed = 0;
 	tc.testFinished = 0;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";

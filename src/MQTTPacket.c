@@ -334,11 +334,11 @@ int readInt(char** pptr)
  */
 uint64_t readInt64(char** pptr)
 {
-	char* ptr = *pptr;
-    uint64_t len = (uint64_t)ptr[0]<<0x38 | (uint64_t)ptr[1]<<0x30
-        | (uint64_t)ptr[2]<<0x28 | (uint64_t)ptr[3]<<0x20
-        | (uint64_t)ptr[4]<<0x18 | (uint64_t)ptr[5]<<0x10
-        | (uint64_t)ptr[6]<<0x8 | (uint64_t)ptr[7]<<0;
+	uint8_t *ptr = (uint8_t *)*pptr;
+    uint64_t len = ((uint64_t)ptr[0])<<0x38 | ((uint64_t)ptr[1])<<0x30
+        | ((uint64_t)ptr[2])<<0x28 | ((uint64_t)ptr[3])<<0x20
+        | ((uint64_t)ptr[4])<<0x18 | ((uint64_t)ptr[5])<<0x10
+        | ((uint64_t)ptr[6])<<0x8 | ((uint64_t)ptr[7])<<0;
     *pptr += 8;
 	return len;
 }
@@ -425,9 +425,9 @@ void writeChar(char** pptr, char c)
  */
 void writeInt(char** pptr, int anInt)
 {
-	**pptr = (char)(anInt / 256);
+	**pptr = (char)(anInt >> 8);
 	(*pptr)++;
-	**pptr = (char)(anInt % 256);
+	**pptr = (char)(anInt & 0xff);
 	(*pptr)++;
 }
 
@@ -438,14 +438,14 @@ void writeInt(char** pptr, int anInt)
  */
 void writeInt32(char** pptr, uint32_t anInt)
 {
-    writeInt(pptr, (anInt / 0x10000));
-    writeInt(pptr, (anInt % 0x10000));
+    writeInt(pptr, (anInt >> 16));
+    writeInt(pptr, (anInt & 0xffff));
 }
 
 void writeInt64(char** pptr, uint64_t anInt)
 {
-    writeInt32(pptr, (anInt / 0x100000000));
-    writeInt32(pptr, (anInt % 0x100000000));
+    writeInt32(pptr, (anInt >> 32));
+    writeInt32(pptr, (anInt & 0xffffffff));
 }
 
 /**
@@ -522,6 +522,7 @@ void* MQTTPacket_publish(unsigned char aHeader, char* data, int datalen)
 		pack->msgId = readInt64(&curdata);
 	else
 		pack->msgId = 0;
+    //printf("received msgid %llu"\n", pack->msgId);
 	pack->payload = curdata;
 	pack->payloadlen = datalen-(curdata-data);
 exit:
@@ -583,7 +584,13 @@ int MQTTPacket_send_puback(uint64_t msgid, networkHandles* net, char* clientID)
 	int rc = 0;
 
 	FUNC_ENTRY;
+	Log(LOG_PROTOCOL, 12, NULL, net->socket, clientID, msgid, rc);
 	rc =  MQTTPacket_send_ack(PUBACK, msgid, 0, net);
+    char *buf = malloc(8);
+    char *ptr = buf;
+    char *ptr2 = buf;
+    writeInt64(&ptr, msgid);
+    msgid = readInt64(&ptr2);
 	Log(LOG_PROTOCOL, 12, NULL, net->socket, clientID, msgid, rc);
 	FUNC_EXIT_RC(rc);
 	return rc;

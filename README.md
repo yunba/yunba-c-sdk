@@ -95,3 +95,9 @@ cd build/output/
 ./samples/stdoutsub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1
 ## do publication in a new terminal as below
 ./samples/stdinpub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1
+
+
+STDOUT_LOG:
+export MQTT_C_CLIENT_TRACE=stdout
+export MQTT_C_CLIENT_TRACE=ON
+export MQTT_C_CLIENT_TRACE_LEVEL=TRACE_PROTOCOL

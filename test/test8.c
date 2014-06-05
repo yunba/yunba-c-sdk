@@ -359,7 +359,7 @@ int test1(struct Options options)
 	rc = MQTTAsync_setCallbacks(c, c, NULL, test1_messageArrived, NULL);
 	assert("Good rc from setCallbacks", rc == MQTTASYNC_SUCCESS, "rc was %d", rc);
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -451,7 +451,7 @@ int test2(struct Options options)
 	assert("Good rc from setCallbacks", rc == MQTTASYNC_SUCCESS, "rc was %d", rc);
 
 	opts.connectTimeout = 5;
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -661,7 +661,7 @@ int test3(struct Options options)
 		rc = MQTTAsync_setCallbacks(clientdata[i].c, &clientdata[i], NULL, test3_messageArrived, NULL);
 		assert("Good rc from setCallbacks", rc == MQTTASYNC_SUCCESS, "rc was %d", rc);
 
-		opts.keepAliveInterval = 20;
+		opts.keepAliveInterval = 300;
 		opts.cleansession = 1;
 		opts.username = "testuser";
 		opts.password = "testpassword";
@@ -846,7 +846,7 @@ int test4(struct Options options)
 	rc = MQTTAsync_setCallbacks(c, c, NULL, test4_messageArrived, NULL);
 	assert("Good rc from setCallbacks", rc == MQTTASYNC_SUCCESS, "rc was %d", rc);
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";

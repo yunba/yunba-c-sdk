@@ -87,7 +87,7 @@ endif
 
 ifeq ($(OSTYPE),Linux)
 
-CC ?= gcc
+CC ?= gcc -ggdb -O0
 
 ifndef INSTALL
 INSTALL = install
@@ -106,7 +106,7 @@ MQTTLIB_A_TARGET = ${blddir}/lib${MQTTLIB_A}.so.${VERSION}
 MQTTLIB_AS_TARGET = ${blddir}/lib${MQTTLIB_AS}.so.${VERSION}
 MQTTVERSION_TARGET = ${blddir}/MQTTVersion
 
-CCFLAGS_SO = -g -fPIC -Os -Wall -fvisibility=hidden
+CCFLAGS_SO = -ggdb -O0 -fPIC -Os -Wall -fvisibility=hidden
 FLAGS_EXE = -I ${srcdir} -lpthread -L ${blddir}
 
 LDFLAGS_C = -shared -Wl,-soname,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,MQTTClient_init -lpthread 
@@ -213,7 +213,7 @@ endif
 
 ifeq ($(OSTYPE),Darwin)
 
-CC ?= gcc
+CC ?= gcc -ggdb -O0
 
 ifndef INSTALL
 INSTALL = install
@@ -232,7 +232,7 @@ MQTTLIB_A_TARGET = ${blddir}/lib${MQTTLIB_A}.so.${VERSION}
 MQTTLIB_AS_TARGET = ${blddir}/lib${MQTTLIB_AS}.so.${VERSION}
 MQTTVERSION_TARGET = ${blddir}/MQTTVersion
 
-CCFLAGS_SO = -g -fPIC -Os -Wall -fvisibility=hidden -Wno-deprecated-declarations -DUSE_NAMED_SEMAPHORES
+CCFLAGS_SO = -ggdb -fPIC -O0 -Wall -fvisibility=hidden -Wno-deprecated-declarations -DUSE_NAMED_SEMAPHORES
 FLAGS_EXE = -I ${srcdir} -lpthread -L ${blddir}
 
 LDFLAGS_C = -shared -Wl,-install_name,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,_MQTTClient_init -lpthread 
@@ -258,16 +258,16 @@ ${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
 	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_CS} ${FLAGS_EXE} -lssl
 
 ${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE} 
+	${CC} -g -ggdb -O0 -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE} 
 
 ${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_AS} ${FLAGS_EXE} -lssl
+	${CC} -g -ggdb -O0 -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_AS} ${FLAGS_EXE} -lssl
 
 ${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c
-	${CC} -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
+	${CC} -ggdb -O0 -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
 
 ${ASYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c
-	${CC} -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE}
+	${CC} -ggdb -O0 -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE}
 
 ${MQTTLIB_C_TARGET}: ${SOURCE_FILES_C} ${HEADERS_C}
 	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_C} ${LDFLAGS_C}

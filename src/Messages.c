@@ -43,26 +43,26 @@ static char* protocol_message_list[] =
 	"%d %s <- PINGREQ", /* 3, was 35 */
 	"%d %s -> PINGRESP (%d)", /* 4 */
 	"%d %s <- DISCONNECT", /* 5 */
-	"%d %s <- SUBSCRIBE msgid: %d", /* 6, was 39 */
-	"%d %s -> SUBACK msgid: %d (%d)", /* 7, was 40 */
-	"%d %s <- UNSUBSCRIBE msgid: %d", /* 8, was 41 */
-	"%d %s -> UNSUBACK msgid: %d (%d)", /* 9 */
-	"%d %s -> PUBLISH msgid: %d qos: %d retained: %d (%d) payload: %.*s", /* 10, was 42 */
-	"%d %s <- PUBLISH msgid: %d qos: %d retained: %d payload: %.*s", /* 11, was 46 */
-	"%d %s -> PUBACK msgid: %d (%d)", /* 12, was 47 */
-	"%d %s -> PUBREC msgid: %d (%d)", /* 13, was 48 */
-	"%d %s <- PUBACK msgid: %d", /* 14, was 49 */
-	"%d %s <- PUBREC msgid: %d", /* 15, was 53 */
-	"%d %s -> PUBREL msgid: %d (%d)", /* 16, was 57 */
-	"%d %s <- PUBREL msgid %d", /* 17, was 58 */
-	"%d %s -> PUBCOMP msgid %d (%d)", /* 18, was 62 */
-	"%d %s <- PUBCOMP msgid:%d", /* 19, was 63 */
+	"%d %s <- SUBSCRIBE msgid: %llu", /* 6, was 39 */
+	"%d %s -> SUBACK msgid: %llu (%d)", /* 7, was 40 */
+	"%d %s <- UNSUBSCRIBE msgid: %llu", /* 8, was 41 */
+	"%d %s -> UNSUBACK msgid: %llu (%d)", /* 9 */
+	"%d %s -> PUBLISH msgid: %llu qos: %d retained: %d (%d) payload: %.*s", /* 10, was 42 */
+	"%d %s <- PUBLISH msgid: %llu qos: %d retained: %d payload: %.*s", /* 11, was 46 */
+	"%d %s -> PUBACK msgid: %llu (%d)", /* 12, was 47 */
+	"%d %s -> PUBREC msgid: %llu (%d)", /* 13, was 48 */
+	"%d %s <- PUBACK msgid: %llu", /* 14, was 49 */
+	"%d %s <- PUBREC msgid: %llu", /* 15, was 53 */
+	"%d %s -> PUBREL msgid: %llu (%d)", /* 16, was 57 */
+	"%d %s <- PUBREL msgid: %llu", /* 17, was 58 */
+	"%d %s -> PUBCOMP msgid: %llu (%d)", /* 18, was 62 */
+	"%d %s <- PUBCOMP msgid: %llu", /* 19, was 63 */
 	"%d %s -> PINGREQ (%d)", /* 20, was 137 */
 	"%d %s <- PINGRESP", /* 21, was 70 */
-	"%d %s -> SUBSCRIBE msgid: %d (%d)", /* 22, was 72 */
-	"%d %s <- SUBACK msgid: %d", /* 23, was 73 */
-	"%d %s <- UNSUBACK msgid: %d", /* 24, was 74 */
-	"%d %s -> UNSUBSCRIBE msgid: %d (%d)", /* 25, was 106 */
+	"%d %s -> SUBSCRIBE msgid: %llu (%d)", /* 22, was 72 */
+	"%d %s <- SUBACK msgid: %llu", /* 23, was 73 */
+	"%d %s <- UNSUBACK msgid: %llu", /* 24, was 74 */
+	"%d %s -> UNSUBSCRIBE msgid: %llu (%d)", /* 25, was 106 */
 	"%d %s <- CONNECT", /* 26 */
 	"%d %s -> PUBLISH qos: 0 retained: %d (%d)", /* 27 */
 	"%d %s -> DISCONNECT (%d)", /* 28 */

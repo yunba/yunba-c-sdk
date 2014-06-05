@@ -456,7 +456,18 @@ int Socket_putdatas(int socket, char* buf0, int buf0len, int count, char** buffe
 	{
 		iovecs[i+1].iov_base = buffers[i];
 		iovecs[i+1].iov_len = buflens[i];
-	}
+
+        /*
+        printf("out put buffers: 0x");
+        for (int j=0; j<buflens[i]; j++) {
+            printf("%x", (uint8_t)buffers[i][j]);
+            if (j%2) {
+                printf(" ");
+            }
+        }
+        printf("\n");
+        */
+    }
 
 	if ((rc = Socket_writev(socket, iovecs, count+1, &bytes)) != SOCKET_ERROR)
 	{

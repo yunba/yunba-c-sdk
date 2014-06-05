@@ -345,10 +345,11 @@ int test1(struct Options options)
 		goto exit;
 	}
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
-	opts.username = "testuser";
-	opts.password = "testpassword";
+    //opts.clientID = "0000000005-000000098632";
+	opts.username = "utZ9";
+	opts.password = "7?sa<2T;b*w";
 	if (options.haconnections != NULL)
 	{
 		opts.serverURIs = options.haconnections;
@@ -513,7 +514,7 @@ int test2(struct Options options)
 
 	MQTTClient_create(&c, options.connection, "multi_threaded_sample", MQTTCLIENT_PERSISTENCE_DEFAULT, NULL);
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	if (options.haconnections != NULL)
 	{
@@ -661,7 +662,7 @@ int test4_run(int qos)
 
 	MQTTClient_create(&c, options.connection, "xrctest1_test_4", MQTTCLIENT_PERSISTENCE_DEFAULT, NULL);
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.reliable = 0;
 	if (options.haconnections != NULL)
 	{
@@ -830,7 +831,7 @@ int test5(struct Options options)
 
 	MQTTClient_create(&c, options.connection, "xrctest1_test_5", MQTTCLIENT_PERSISTENCE_DEFAULT, NULL);
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 0;
 	opts.reliable = 0;
 	if (options.haconnections != NULL)
@@ -1047,7 +1048,7 @@ int test6(struct Options options)
 	assert("good rc from setCallbacks",  rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc);
 
 	/* Connect to the broker */
-	opts2.keepAliveInterval = 20;
+	opts2.keepAliveInterval = 300;
 	opts2.cleansession = 1;
 	MyLog(LOGA_INFO, "Connecting Client_2 ...");
 	rc = MQTTClient_connect(test6_c2, &opts2);
@@ -1099,7 +1100,7 @@ exit:
 int main(int argc, char** argv)
 {
 	int rc = 0;
- 	int (*tests[])() = {NULL, test1, test2, test3, test4, test5, test6};
+ 	int (*tests[])() = {NULL, test1, test2};
 	
 	xml = fopen("TEST-test1.xml", "w");
 	fprintf(xml, "<testsuite name=\"test1\" tests=\"%d\">\n", (int)(ARRAY_SIZE(tests) - 1));

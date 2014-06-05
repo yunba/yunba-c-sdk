@@ -439,7 +439,7 @@ void client_onReconnectFailure(void* context, MQTTAsync_failureData* response)
 	MyLog(LOGA_ALWAYS, "Failed to reconnect with return code %d", (response) ? response->code : -9999);
 
 	conn_opts.context = context;
-	conn_opts.keepAliveInterval = 10;
+	conn_opts.keepAliveInterval = 300;
 	conn_opts.username = opts.username;
 	conn_opts.password = opts.password;
 	conn_opts.cleansession = 0;
@@ -468,7 +468,7 @@ void connectionLost(void* context, char* cause)
 	else
 	{
 		conn_opts.context = context;
-		conn_opts.keepAliveInterval = 10;
+		conn_opts.keepAliveInterval = 300;
 		conn_opts.username = opts.username;
 		conn_opts.password = opts.password;
 		conn_opts.cleansession = 0;
@@ -522,7 +522,7 @@ int recreateReconnect()
 	}
 
 	MyLog(LOGA_ALWAYS, "Reconnecting client");
-	conn_opts.keepAliveInterval = 10;
+	conn_opts.keepAliveInterval = 300;
 	conn_opts.username = opts.username;
 	conn_opts.password = opts.password;
 	conn_opts.cleansession = 0;
@@ -803,7 +803,7 @@ int sendAndReceive(void)
 	control_wait("who is ready?");
 
 	/* connect cleansession, and then disconnect, to clean up */
-	conn_opts.keepAliveInterval = 10;
+	conn_opts.keepAliveInterval = 300;
 	conn_opts.username = opts.username;
 	conn_opts.password = opts.password;
 	conn_opts.cleansession = 1;
@@ -969,7 +969,7 @@ int main(int argc, char** argv)
 
 	control_subscribed = 0;
 	control_conn_opts.context = control_client;
-	control_conn_opts.keepAliveInterval = 10;
+	control_conn_opts.keepAliveInterval = 300;
 	control_conn_opts.onSuccess = control_onConnect;
 	control_conn_opts.onFailure = control_onFailure;
 	if ((rc = MQTTAsync_connect(control_client, &control_conn_opts))

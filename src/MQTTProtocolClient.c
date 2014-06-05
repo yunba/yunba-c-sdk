@@ -504,6 +504,7 @@ int MQTTProtocol_handlePubcomps(void* pack, int sock)
  * MQTT protocol keepAlive processing.  Sends PINGREQ packets as required.
  * @param now current time
  */
+#define PING_AHEAD_KEEPALIVE (60)
 void MQTTProtocol_keepalive(time_t now)
 {
 	ListElement* current = NULL;
@@ -514,7 +515,7 @@ void MQTTProtocol_keepalive(time_t now)
 	{
 		Clients* client =	(Clients*)(current->content);
 		ListNextElement(bstate->clients, &current); 
-		if (client->connected && client->keepAliveInterval > 0 && (difftime(now, client->net.lastContact) >= client->keepAliveInterval))
+		if (client->connected && client->keepAliveInterval > 0 && (difftime(now, client->net.lastContact) >= MAX(client->keepAliveInterval-PING_AHEAD_KEEPALIVE, 1)))
 		{
 			if (client->ping_outstanding == 0)
 			{

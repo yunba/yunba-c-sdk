@@ -582,7 +582,7 @@ int test1(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d \n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -637,7 +637,7 @@ int test2a_s(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -722,7 +722,7 @@ int test2a_m(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -803,7 +803,7 @@ int test2b(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -863,7 +863,7 @@ int test2c(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -924,7 +924,7 @@ int test3a_s(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1003,7 +1003,7 @@ int test3a_m(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1077,7 +1077,7 @@ int test3b(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1129,7 +1129,7 @@ int test4_s(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1206,7 +1206,7 @@ int test4_m(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1280,7 +1280,7 @@ int test5a(struct Options options)
 	if (!(assert("good rc from create",	rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1359,7 +1359,7 @@ int test5b(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
@@ -1441,7 +1441,7 @@ int test5c(struct Options options)
 	if (!(assert("good rc from create", rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc)))
 		goto exit;
 
-	opts.keepAliveInterval = 20;
+	opts.keepAliveInterval = 300;
 	opts.cleansession = 1;
 	opts.username = "testuser";
 	opts.password = "testpassword";
