@@ -745,7 +745,7 @@ int main (int argc, char *argv[])
 	for(msgId=0;msgId<NMSGS;msgId++)
 	{
 		key = malloc(MESSAGE_FILENAME_LENGTH + 1);
-		sprintf(key, "%s%llu", stem, msgId);
+		sprintf(key, "%s%"PRIu64, stem, msgId);
 		rc = pstput(handle, key, nbufs, bufs, buflens);
 		printf("%s Adding message %s\n", RC, key);
 		free(key);

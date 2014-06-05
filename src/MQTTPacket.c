@@ -522,7 +522,7 @@ void* MQTTPacket_publish(unsigned char aHeader, char* data, int datalen)
 		pack->msgId = readInt64(&curdata);
 	else
 		pack->msgId = 0;
-    //printf("received msgid %llu"\n", pack->msgId);
+    //printf("received msgid %"PRIu64\n", pack->msgId);
 	pack->payload = curdata;
 	pack->payloadlen = datalen-(curdata-data);
 exit:

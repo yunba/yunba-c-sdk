@@ -894,7 +894,7 @@ void test6_connectionLost(void* context, char* cause)
 
 void test6_deliveryComplete(void* context, MQTTClient_deliveryToken token)
 {
-	printf("Client-2 -> Callback: publish complete for token %llu\n", token);
+	printf("Client-2 -> Callback: publish complete for token %"PRIu64"\n", token);
 }
 
 char* test6_will_topic = "C Test 2: will topic";

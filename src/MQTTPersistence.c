@@ -209,7 +209,7 @@ int MQTTPersistence_restore(Clients *c)
 						Publish* publish = (Publish*)pack;
 						Messages* msg = NULL;
 						char *key = malloc(MESSAGE_FILENAME_LENGTH + 1);
-						sprintf(key, "%s%llu", PERSISTENCE_PUBREL, publish->msgId);
+						sprintf(key, "%s%"PRIu64, PERSISTENCE_PUBREL, publish->msgId);
 						msg = MQTTProtocol_createMessage(publish, &msg, publish->header.bits.qos, publish->header.bits.retain);
 						if ( c->persistence->pcontainskey(c->phandle, key) == 0 )
 							/* PUBLISH Qo2 and PUBREL sent */
@@ -228,7 +228,7 @@ int MQTTPersistence_restore(Clients *c)
 						/* orphaned PUBRELs ? */
 						Pubrel* pubrel = (Pubrel*)pack;
 						char *key = malloc(MESSAGE_FILENAME_LENGTH + 1);
-						sprintf(key, "%s%llu", PERSISTENCE_PUBLISH_SENT, pubrel->msgId);
+						sprintf(key, "%s%"PRIu64, PERSISTENCE_PUBLISH_SENT, pubrel->msgId);
 						if ( c->persistence->pcontainskey(c->phandle, key) != 0 )
 							rc = c->persistence->premove(c->phandle, msgkeys[i]);
 						free(pubrel);
@@ -364,12 +364,12 @@ int MQTTPersistence_put(int socket, char* buf0, int buf0len, int count,
 		if ( scr == 0 )
 		{  /* sending */
 			if (htype == PUBLISH)   /* PUBLISH QoS1 and QoS2*/
-				sprintf(key, "%s%llu", PERSISTENCE_PUBLISH_SENT, msgId);
+				sprintf(key, "%s%"PRIu64, PERSISTENCE_PUBLISH_SENT, msgId);
 			if (htype == PUBREL)  /* PUBREL */
-				sprintf(key, "%s%llu", PERSISTENCE_PUBREL, msgId);
+				sprintf(key, "%s%"PRIu64, PERSISTENCE_PUBREL, msgId);
 		}
 		if ( scr == 1 )  /* receiving PUBLISH QoS2 */
-			sprintf(key, "%s%llu", PERSISTENCE_PUBLISH_RECEIVED, msgId);
+			sprintf(key, "%s%"PRIu64, PERSISTENCE_PUBLISH_RECEIVED, msgId);
 
 		rc = client->persistence->pput(client->phandle, key, nbufs, bufs, lens);
 
@@ -402,14 +402,14 @@ int MQTTPersistence_remove(Clients* c, char *type, int qos, uint64_t msgId)
 		char *key = malloc(MESSAGE_FILENAME_LENGTH + 1);
 		if ( (strcmp(type,PERSISTENCE_PUBLISH_SENT) == 0) && qos == 2 )
 		{
-			sprintf(key, "%s%llu", PERSISTENCE_PUBLISH_SENT, msgId) ;
+			sprintf(key, "%s%"PRIu64, PERSISTENCE_PUBLISH_SENT, msgId) ;
 			rc = c->persistence->premove(c->phandle, key);
-			sprintf(key, "%s%llu", PERSISTENCE_PUBREL, msgId) ;
+			sprintf(key, "%s%"PRIu64, PERSISTENCE_PUBREL, msgId) ;
 			rc = c->persistence->premove(c->phandle, key);
 		}
 		else /* PERSISTENCE_PUBLISH_SENT && qos == 1 */
 		{    /* or PERSISTENCE_PUBLISH_RECEIVED */
-			sprintf(key, "%s%llu", type, msgId) ;
+			sprintf(key, "%s%"PRIu64, type, msgId) ;
 			rc = c->persistence->premove(c->phandle, key);
 		}
 		free(key);
