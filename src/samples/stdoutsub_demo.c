@@ -226,6 +226,16 @@ int main(int argc, char** argv)
 		}
 	}
 
+
+	{
+		char *alias= "000000018302";
+		char *pub_topic=",yali";
+		rc = MQTTClient_publish(client, pub_topic, strlen(alias), alias, opts.qos, 0, NULL);
+
+		(rc == 0)? printf("alias OK\n") : printf("alias fail\n");
+	}
+
+
 	rc = MQTTClient_subscribe(client, topic, opts.qos);
 
 //	daemon(0,0);
