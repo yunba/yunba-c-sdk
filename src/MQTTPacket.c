@@ -586,12 +586,6 @@ int MQTTPacket_send_puback(uint64_t msgid, networkHandles* net, char* clientID)
 	FUNC_ENTRY;
 	Log(LOG_PROTOCOL, 12, NULL, net->socket, clientID, msgid, rc);
 	rc =  MQTTPacket_send_ack(PUBACK, msgid, 0, net);
-    char *buf = malloc(8);
-    char *ptr = buf;
-    char *ptr2 = buf;
-    writeInt64(&ptr, msgid);
-    msgid = readInt64(&ptr2);
-	Log(LOG_PROTOCOL, 12, NULL, net->socket, clientID, msgid, rc);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
