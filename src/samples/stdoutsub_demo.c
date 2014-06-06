@@ -235,7 +235,6 @@ int main(int argc, char** argv)
 		(rc == 0)? printf("alias OK\n") : printf("alias fail\n");
 	}
 
-
 	rc = MQTTClient_subscribe(client, topic, opts.qos);
 
 //	daemon(0,0);
