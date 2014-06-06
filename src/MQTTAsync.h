@@ -148,6 +148,23 @@
 #define MQTTASYNC_NO_MORE_MSGIDS -10
 
 /**
+ * Default MQTT version to connect with.  Use 3.1.1 then fall back to 3.1
+ */
+#define MQTTVERSION_DEFAULT 0
+/**
+ * MQTT version to connect with: 3.1
+ */
+#define MQTTVERSION_3_1 3
+/**
+ * MQTT version to connect with: 3.1.1
+ */
+#define MQTTVERSION_3_1_1 4
+/**
+ * Bad return code from subscribe, as defined in the 3.1.1 specification
+ */
+#define MQTT_BAD_SUBSCRIBE 0x80
+
+/**
  * A handle representing an MQTT client. A valid client handle is available
  * following a successful call to MQTTAsync_create().
  */
