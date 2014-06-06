@@ -236,7 +236,7 @@ int main(int argc, char** argv)
 		int topicLen;
 		MQTTClient_message* message = NULL;
 		
-		rc = MQTTClient_receive(client, &topicName, &topicLen, &message, 1000);
+		rc = MQTTClient_receive(client, &topicName, &topicLen, &message, 100000);
 		if (message)
 		{
 /*
