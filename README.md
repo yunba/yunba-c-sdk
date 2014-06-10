@@ -102,23 +102,3 @@ STDOUT_LOG:
 export MQTT_C_CLIENT_TRACE=stdout
 export MQTT_C_CLIENT_TRACE=ON
 export MQTT_C_CLIENT_TRACE_LEVEL=TRACE_PROTOCOL
-
-
-Wifi小车控制需求
-传输协议
-Topic name: rocket
-
-协议控制说明:
-    
-小车动作   控制字符
-前进       g
-后退       b
-左转       l
-后传       r
-
-客户端控制
-主要控制界面如下：
-![无标题.png](https://bitbucket.org/repo/6MbzrR/images/1037022977-%E6%97%A0%E6%A0%87%E9%A2%98.png)
-
-当用户按住上下左右按键时，需发送相应的控制字符g，b，l，r。当用户松开时，需发送控制字符s。
-当用户按中间按键时，需发送控制字符s。
