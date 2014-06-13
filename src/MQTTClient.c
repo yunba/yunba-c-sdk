@@ -40,6 +40,7 @@
 #include "MQTTPersistence.h"
 #endif
 
+
 #include "utf-8.h"
 #include "MQTTProtocol.h"
 #include "MQTTProtocolOut.h"
@@ -47,6 +48,7 @@
 #include "SocketBuffer.h"
 #include "StackTrace.h"
 #include "Heap.h"
+#include "cJSON.h"
 
 #if defined(OPENSSL)
 #include <openssl/ssl.h>
@@ -1250,6 +1252,14 @@ int MQTTClient_subscribe(MQTTClient handle, char* topic, int qos)
 }
 
 
+int MQTTClient_presence(MQTTClient handle, char* topic)
+{
+	char temp[100];
+	sprintf(temp, "%s/p", topic);
+	return MQTTClient_subscribe(handle, temp, 0);
+}
+
+
 int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char** topic)
 {
 	MQTTClients* m = handle;
@@ -1324,6 +1334,15 @@ int MQTTClient_unsubscribe(MQTTClient handle, char* topic)
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
+
+
+int MQTTClient_unpresence(MQTTClient handle, char* topic)
+{
+	char temp[100];
+	sprintf(temp, "%s/p", topic);
+	return MQTTClient_unsubscribe(handle, &temp);
+}
+
 
 
 int MQTTClient_publish(MQTTClient handle, char* topicName, int payloadlen, void* payload,
@@ -1438,6 +1457,19 @@ int MQTTClient_publishMessage(MQTTClient handle, char* topicName, MQTTClient_mes
 exit:
 	FUNC_EXIT_RC(rc);
 	return rc;
+}
+
+int MQTTClient_set_alias(MQTTClient handle, char* alias)
+{
+	const char *topic_name=",yali";
+	return MQTTClient_publish(handle, topic_name, strlen(alias), alias, 0, 0, NULL);
+}
+
+//TODO
+int MQTTClient_get_alias(MQTTClient handle, char* alias)
+{
+	const char *topic_name=",yaliget";
+	return MQTTClient_publish(handle, topic_name, strlen(alias), alias, 0, 0, NULL);
 }
 
 
@@ -1684,6 +1716,36 @@ exit:
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
+
+
+bool endswith(const char* str, const char* tail)
+{
+  const char* foo = strstr (str, tail);
+  if (foo)
+  {
+     const int strlength = strlen (str);
+     const int taillength = strlen (tail);
+     return foo == (str + strlength - taillength);
+  }
+  return 0;
+}
+
+int get_present_info(char *topicName, MQTTClient_message* m, Presence_msg *presence_status)
+{
+	if (endswith(topicName, "/p") != 0) {
+		cJSON *root = cJSON_Parse((char *)m->payload);
+		if (root != NULL) {
+			strcpy(presence_status->action, cJSON_GetObjectItem(root,"action")->valuestring);
+			strcpy(presence_status->alias, cJSON_GetObjectItem(root,"alias")->valuestring);\
+			return 0;
+		}
+	}
+	return -1;
+}
+
+
+
+/**/
 
 
 void MQTTClient_yield(void)

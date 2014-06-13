@@ -53,7 +53,7 @@ HEADERS = $(srcdir)/*.h
 HEADERS_C = $(filter-out $(srcdir)/MQTTAsync.h, $(HEADERS))
 HEADERS_A = $(HEADERS)
 
-SAMPLE_FILES_C = stdinpub stdoutsub pubsync pubasync subasync
+SAMPLE_FILES_C = stdinpub stdoutsub pubsync pubasync subasync stdinpub_present stdoutsub_demo
 SYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_C}}
 
 SAMPLE_FILES_A = stdoutsuba MQTTAsync_subscribe MQTTAsync_publish
@@ -109,10 +109,10 @@ MQTTVERSION_TARGET = ${blddir}/MQTTVersion
 CCFLAGS_SO = -ggdb -O0 -fPIC -Os -Wall -fvisibility=hidden
 FLAGS_EXE = -I ${srcdir} -lpthread -L ${blddir}
 
-LDFLAGS_C = -shared -Wl,-soname,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,MQTTClient_init -lpthread 
-LDFLAGS_CS = -shared -Wl,-soname,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -Wl,-no-whole-archive -Wl,-init,MQTTClient_init 
-LDFLAGS_A = -shared -Wl,-soname,lib${MQTTLIB_A}.so.${MAJOR_VERSION} -Wl,-init,MQTTAsync_init -lpthread
-LDFLAGS_AS = -shared -Wl,-soname,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -Wl,-no-whole-archive -Wl,-init,MQTTAsync_init 
+LDFLAGS_C = -shared -Wl,-soname,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,MQTTClient_init -lpthread -lm
+LDFLAGS_CS = -shared -Wl,-soname,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -lm -Wl,-no-whole-archive -Wl,-init,MQTTClient_init 
+LDFLAGS_A = -shared -Wl,-soname,lib${MQTTLIB_A}.so.${MAJOR_VERSION} -Wl,-init,MQTTAsync_init -lpthread -lm
+LDFLAGS_AS = -shared -Wl,-soname,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -lm -Wl,-no-whole-archive -Wl,-init,MQTTAsync_init 
 
 all: build
 	

@@ -161,6 +161,15 @@
  */
 #define MQTTCLIENT_BAD_QOS -9
 
+
+typedef struct {
+	char *action;
+	char *alias;
+	uint32_t timestamp;
+	uint16_t occupancy_num;
+} Presence_msg;
+
+
 /**
  * A handle representing an MQTT client. A valid client handle is available
  * following a successful call to MQTTClient_create().
@@ -678,6 +687,12 @@ DLLExport int MQTTClient_isConnected(MQTTClient handle);
   */
 DLLExport int MQTTClient_subscribe(MQTTClient handle, char* topic, int qos);
 
+DLLExport int MQTTClient_presence(MQTTClient handle, char* topic);
+
+DLLExport int MQTTClient_unpresence(MQTTClient handle, char* topic);
+
+DLLExport int get_present_info(char *topicName, MQTTClient_message* m, Presence_msg *presence_status);
+
 /**
   * This function attempts to subscribe a client to a list of topics, which may
   * contain wildcards (see @ref wildcard). This call also specifies the 
@@ -745,6 +760,10 @@ DLLExport int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char** to
   */
 DLLExport int MQTTClient_publish(MQTTClient handle, char* topicName, int payloadlen, void* payload, int qos, int retained,
 																 MQTTClient_deliveryToken* dt);
+
+DLLExport int MQTTClient_set_alias(MQTTClient handle, char* alias);
+DLLExport int MQTTClient_get_alias(MQTTClient handle, char* alias);
+
 /** 
   * This function attempts to publish a message to a given topic (see also
   * MQTTClient_publish()). An ::MQTTClient_deliveryToken is issued when 
