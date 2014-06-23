@@ -146,7 +146,10 @@ int main(int argc, char** argv)
 	conn_opts.username = opts.username;
 	conn_opts.password = opts.password;
 	
-	MQTTClient_set_alias(client, "000000018302");
+	myconnect(&client, &conn_opts);
+
+	int ret = MQTTClient_set_alias(client, "000000018302");
+	(ret == 0)? printf("set alias OK\n") : printf("set alias fail\n");
 
 	rc = MQTTClient_subscribe(client, topic, opts.qos);
 
