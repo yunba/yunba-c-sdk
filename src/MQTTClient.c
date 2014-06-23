@@ -1462,7 +1462,7 @@ exit:
 int MQTTClient_set_alias(MQTTClient handle, char* alias)
 {
 	const char *topic_name=",yali";
-	return MQTTClient_publish(handle, topic_name, strlen(alias), alias, 0, 0, NULL);
+	return MQTTClient_publish(handle, topic_name, strlen(alias), alias, 2, 0, NULL);
 }
 
 //TODO
