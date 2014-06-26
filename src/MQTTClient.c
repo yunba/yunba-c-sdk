@@ -21,6 +21,7 @@
  *    Ian Craggs - fix for bug 419233 - mutexes not reporting errors
  *    Ian Craggs - fix for bug #420851
  *    Ian Craggs - MQTT 3.1.1 support
+ *    Ian Craggs - fix for bug 438176 - MQTT version selection
  *******************************************************************************/
 
 /**
