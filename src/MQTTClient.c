@@ -152,6 +152,7 @@ typedef struct
 	MQTTClient_connectionLost* cl;
 	MQTTClient_messageArrived* ma;
 	MQTTClient_deliveryComplete* dc;
+	MQTTClient_extendedCmdArrive *eca;
 	void* context;
 
 	sem_type connect_sem;
@@ -629,7 +630,8 @@ void MQTTClient_stop()
 
 
 int MQTTClient_setCallbacks(MQTTClient handle, void* context, MQTTClient_connectionLost* cl,
-														MQTTClient_messageArrived* ma, MQTTClient_deliveryComplete* dc)
+														MQTTClient_messageArrived* ma, MQTTClient_deliveryComplete* dc,
+														MQTTClient_extendedCmdArrive *eca)
 {
 	int rc = MQTTCLIENT_SUCCESS;
 	MQTTClients* m = handle;
@@ -645,6 +647,7 @@ int MQTTClient_setCallbacks(MQTTClient handle, void* context, MQTTClient_connect
 		m->cl = cl;
 		m->ma = ma;
 		m->dc = dc;
+		m->eca = eca;
 	}
 
 	Thread_unlock_mutex(mqttclient_mutex);
@@ -1459,17 +1462,125 @@ exit:
 	return rc;
 }
 
+int MQTTClient_get(MQTTClient handle, EXTED_CMD cmd, int parameter_len, void* parameter,
+							 int qos, int retained, MQTTClient_deliveryToken* deliveryToken)
+{
+	int rc = MQTTCLIENT_SUCCESS;
+	MQTTClients* m = handle;
+	Messages* msg = NULL;
+	Get* p = NULL;
+	int blocked = 0;
+
+	FUNC_ENTRY;
+	Thread_lock_mutex(mqttclient_mutex);
+
+	if (m == NULL || m->c == NULL)
+		rc = MQTTCLIENT_FAILURE;
+	else if (m->c->connected == 0)
+		rc = MQTTCLIENT_DISCONNECTED;
+	if (rc != MQTTCLIENT_SUCCESS)
+		goto exit;
+
+	/* If outbound queue is full, block until it is not */
+	while (m->c->outboundMsgs->count >= m->c->maxInflightMessages ||
+         Socket_noPendingWrites(m->c->net.socket) == 0) /* wait until the socket is free of large packets being written */
+	{
+		if (blocked == 0)
+		{
+			blocked = 1;
+			Log(TRACE_MIN, -1, "Blocking get on queue full for client %s", m->c->clientID);
+		}
+		Thread_unlock_mutex(mqttclient_mutex);
+		MQTTClient_yield();
+		Thread_lock_mutex(mqttclient_mutex);
+		if (m->c->connected == 0)
+		{
+			rc = MQTTCLIENT_FAILURE;
+			goto exit;
+		}
+	}
+	if (blocked == 1)
+		Log(TRACE_MIN, -1, "Resuming get now queue not full for client %s", m->c->clientID);
+
+	p = malloc(sizeof(Get));
+
+	p->ext_payload.ext_buf = parameter;
+	p->ext_payload.ext_cmd = cmd;
+	p->ext_payload.ext_buf_len = parameter;
+	p->msgId = -1;
+
+	rc = MQTTProtocol_startGet(m->c, p, qos, retained, &msg);
+
+	/* If the packet was partially written to the socket, wait for it to complete.
+	 * However, if the client is disconnected during this time and qos is not 0, still return success, as
+	 * the packet has already been written to persistence and assigned a message id so will
+	 * be sent when the client next connects.
+	 */
+	if (rc == TCPSOCKET_INTERRUPTED)
+	{
+		while (m->c->connected == 1 && SocketBuffer_getWrite(m->c->net.socket))
+		{
+			Thread_unlock_mutex(mqttclient_mutex);
+			MQTTClient_yield();
+			Thread_lock_mutex(mqttclient_mutex);
+		}
+		rc = (qos > 0 || m->c->connected == 1) ? MQTTCLIENT_SUCCESS : MQTTCLIENT_FAILURE;
+	}
+
+	if (deliveryToken && qos > 0)
+		*deliveryToken = msg->msgid;
+
+	free(p);
+
+	if (rc == SOCKET_ERROR)
+	{
+		Thread_unlock_mutex(mqttclient_mutex);
+		MQTTClient_disconnect_internal(handle, 0);
+		Thread_lock_mutex(mqttclient_mutex);
+		/* Return success for qos > 0 as the send will be retried automatically */
+		rc = (qos > 0) ? MQTTCLIENT_SUCCESS : MQTTCLIENT_FAILURE;
+	}
+
+exit:
+	Thread_unlock_mutex(mqttclient_mutex);
+	FUNC_EXIT_RC(rc);
+	return rc;
+}
+
+
+
+
 int MQTTClient_set_alias(MQTTClient handle, char* alias)
 {
 	const char *topic_name=",yali";
 	return MQTTClient_publish(handle, topic_name, strlen(alias), alias, 2, 0, NULL);
 }
 
-//TODO
-int MQTTClient_get_alias(MQTTClient handle, char* alias)
+
+int MQTTClient_get_aliaslist(MQTTClient handle, char* parameter)
 {
+#if 0
 	const char *topic_name=",yaliget";
 	return MQTTClient_publish(handle, topic_name, strlen(alias), alias, 0, 0, NULL);
+#endif
+	return MQTTClient_get(handle, GET_ALIAS_LIST, strlen(parameter), parameter, 1, 0, NULL);
+}
+
+
+int MQTTClient_get_alias(MQTTClient handle, char* parameter)
+{
+	return MQTTClient_get(handle, GET_ALIAS, strlen(parameter), parameter, 1, 0, NULL);
+}
+
+int MQTTClient_get_topic(MQTTClient handle, char* parameter)
+{
+	return MQTTClient_get(handle, GET_TOPIC, strlen(parameter), parameter, 1, 0, NULL);
+}
+
+
+int MQTTClient_get_status(MQTTClient handle, char* parameter)
+{
+	return MQTTClient_get(handle, GET_STATUS, strlen(parameter), parameter, 1, 0, NULL);
 }
 
 
@@ -1533,10 +1644,19 @@ MQTTPacket* MQTTClient_cycle(int* sock, unsigned long timeout, int* rc)
 		if (pack)
 		{
 			int freed = 1;
-
 			/* Note that these handle... functions free the packet structure that they are dealing with */
 			if (pack->header.bits.type == PUBLISH)
 				*rc = MQTTProtocol_handlePublishes(pack, *sock);
+			else if (pack->header.bits.type == GET) {
+				Getack get_ack = *(Getack*)pack;
+				*rc = MQTTProtocol_handleGets(pack, *sock);
+				if (m && m->eca)
+				{
+					Log(TRACE_MIN, -1, "Calling extendedCommand ack for client %s", m->c->clientID);
+					(*(m->eca))(m->context, get_ack.ack_payload.ext_cmd, get_ack.ack_payload.status,
+							get_ack.ack_payload.len, get_ack.ack_payload.ret_string);
+				}
+			}
 			else if (pack->header.bits.type == PUBACK || pack->header.bits.type == PUBCOMP)
 			{
 				uint64_t msgid;

@@ -81,7 +81,8 @@ pf new_packets[] =
 	MQTTPacket_ack, /**< UNSUBACK */
 	MQTTPacket_header_only, /**< PINGREQ */
 	MQTTPacket_header_only, /**< PINGRESP */
-	MQTTPacket_header_only  /**< DISCONNECT */
+	MQTTPacket_header_only,  /**< DISCONNECT */
+	MQTTPacket_get /* for extended cmd */
 };
 
 
@@ -133,7 +134,7 @@ void* MQTTPacket_Factory(networkHandles* net, int* error)
 	else
 	{
 		ptype = header.bits.type;
-		if (ptype < CONNECT || ptype > DISCONNECT || new_packets[ptype] == NULL)
+		if (ptype < CONNECT || ptype > GET || new_packets[ptype] == NULL)
 			Log(TRACE_MIN, 2, NULL, ptype);
 		else
 		{
@@ -223,7 +224,9 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 	buf[0] = header.byte;
 	for (i = 0; i < count; i++)
 		total += buflens[i];
+
 	buf0len = 1 + MQTTPacket_encode(&buf[1], total);
+
 #if !defined(NO_PERSISTENCE)
 	if (header.bits.type == PUBLISH && header.bits.qos != 0)
 	{   /* persist PUBLISH QoS1 and Qo2 */
@@ -238,13 +241,16 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 		rc = SSLSocket_putdatas(net->ssl, net->socket, buf, buf0len, count, buffers, buflens);
 	else
 #endif
+
 		rc = Socket_putdatas(net->socket, buf, buf0len, count, buffers, buflens);
-		
+
 	if (rc == TCPSOCKET_COMPLETE)
 		time(&(net->lastContact));
 	
+
 	if (rc != TCPSOCKET_INTERRUPTED)
 	  free(buf);
+
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -496,6 +502,41 @@ int MQTTPacket_send_disconnect(networkHandles *net, char* clientID)
 	return rc;
 }
 
+void* MQTTPacket_get(unsigned char aHeader, char* data, int datalen)
+{
+	Ext_ack* pack = malloc(sizeof(Ext_ack));
+	char* curdata = data;
+	char* enddata = &data[datalen];
+
+	FUNC_ENTRY;
+	pack->header.byte = aHeader;
+
+//	if (pack->header.bits.qos > 0)  /* Msgid only exists for QoS 1 or 2 */ {
+		pack->msgId = readInt64(&curdata);
+//	}
+//	else
+//		pack->msgId = 0;
+
+ //   printf("received msgid %PRIu64\n", pack->msgId);
+	pack->ack_payload.ext_cmd = (*curdata);
+	curdata++;
+	pack->ack_payload.status = (*curdata);
+	curdata++;
+	pack->ack_payload.len = readInt(&curdata);
+	pack->ack_payload.ret_string = curdata;
+
+exit:
+	FUNC_EXIT;
+	return pack;
+}
+
+void MQTTPacket_freeGet(Getack* pack)
+{
+	FUNC_ENTRY;
+	free(pack);
+	FUNC_EXIT;
+}
+
 
 /**
  * Function used in the new packets table to create publish packets.
@@ -683,6 +724,59 @@ void* MQTTPacket_ack(unsigned char aHeader, char* data, int datalen)
 }
 
 
+
+int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandles* net, char* clientID)
+{
+	Header header;
+	int rc = -1;
+	FUNC_ENTRY;
+
+	char parm_len[2] = {0, 0};
+	header.bits.type = GET;
+	header.bits.dup = dup;
+	header.bits.qos = qos;
+	header.bits.retain = retained;
+	if (qos > 0)
+	{
+		char *buf = malloc(8);
+		char *ptr = buf;
+		char *cmd = &(pack->ext_payload.ext_cmd);
+
+		char* bufs[4] = {buf, cmd, parm_len, pack->ext_payload.ext_buf};
+		int lens[4] = {8, 1, 2, strlen(pack->ext_payload.ext_buf)};
+
+		writeInt64(&ptr, pack->msgId);
+		ptr = parm_len;
+		writeInt(&ptr, lens[3]);
+		rc = MQTTPacket_sends(net, header, 4, bufs, lens);
+		if (rc != TCPSOCKET_INTERRUPTED)
+			free(buf);
+	}
+	else
+	{
+		char *cmd = &(pack->ext_payload.ext_cmd);
+		char *ptr = parm_len;
+		char* bufs[3] = {cmd, parm_len, pack->ext_payload.ext_buf};
+		int lens[3] = {1, 2, strlen(pack->ext_payload.ext_buf)};
+		writeInt(&ptr, lens[2]);
+		rc = MQTTPacket_sends(net, header, 3, bufs, lens);
+	}
+
+//	if (rc != TCPSOCKET_INTERRUPTED)
+//		free(parm_len);
+
+//	if (qos == 0)
+//		Log(LOG_PROTOCOL, 27, NULL, net->socket, clientID, retained, rc);
+//	else
+//		Log(LOG_PROTOCOL, 10, NULL, net->socket, clientID, pack->msgId, qos, retained, rc,
+//				min(20, pack->ext_payloadlen), pack->ext_payload);
+	FUNC_EXIT_RC(rc);
+	return rc;
+}
+
+
+
+
 /**
  * Send an MQTT PUBLISH packet down a socket.
  * @param pack a structure from which to get some values to use, e.g topic, payload
@@ -748,6 +842,8 @@ void MQTTPacket_free_packet(MQTTPacket* pack)
 	FUNC_ENTRY;
 	if (pack->header.bits.type == PUBLISH)
 		MQTTPacket_freePublish((Publish*)pack);
+	if (pack->header.bits.type == GET)
+		MQTTPacket_freeGet((Get*)pack);
 	/*else if (pack->header.type == SUBSCRIBE)
 		MQTTPacket_freeSubscribe((Subscribe*)pack, 1);
 	else if (pack->header.type == UNSUBSCRIBE)

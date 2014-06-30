@@ -522,7 +522,7 @@ int test2(struct Options options)
 		opts.serverURIcount = options.hacount;
 	}
 
-	rc = MQTTClient_setCallbacks(c, NULL, NULL, test2_messageArrived, test2_deliveryComplete);
+	rc = MQTTClient_setCallbacks(c, NULL, NULL, test2_messageArrived, test2_deliveryComplete, NULL);
 	assert("Good rc from setCallbacks", rc == MQTTCLIENT_SUCCESS, "rc was %d", rc);
 
 	MyLog(LOGA_DEBUG, "Connecting");
@@ -1028,7 +1028,7 @@ int test6(struct Options options)
 	if (rc != MQTTCLIENT_SUCCESS)
 		goto exit;
 
-	rc = MQTTClient_setCallbacks(test6_c1, (void*)test6_c1, test6_connectionLost, test6_messageArrived, test6_deliveryComplete);
+	rc = MQTTClient_setCallbacks(test6_c1, (void*)test6_c1, test6_connectionLost, test6_messageArrived, test6_deliveryComplete, NULL);
 	assert("good rc from setCallbacks",  rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc);
 	if (rc != MQTTCLIENT_SUCCESS)
 		goto exit;
@@ -1044,7 +1044,7 @@ int test6(struct Options options)
 	assert("good rc from create",  rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc);
 
 	/* Set the callback functions for the client */
-	rc = MQTTClient_setCallbacks(test6_c2, (void*)test6_c2, test6_connectionLost, test6_messageArrived, test6_deliveryComplete);
+	rc = MQTTClient_setCallbacks(test6_c2, (void*)test6_c2, test6_connectionLost, test6_messageArrived, test6_deliveryComplete, NULL);
 	assert("good rc from setCallbacks",  rc == MQTTCLIENT_SUCCESS, "rc was %d\n", rc);
 
 	/* Connect to the broker */

@@ -115,6 +115,17 @@
 #include "MQTTClientPersistence.h"
 #endif
 
+typedef enum {
+	GET_ALIAS =1,
+	GET_ALIAS_ACK,
+	GET_TOPIC,
+	GET_TOPIC_ACK,
+	GET_ALIAS_LIST,
+	GET_ALIAS_LIST_ACK,
+	GET_STATUS = 9,
+	GET_STATUS_ACK
+} EXTED_CMD;
+
 /**
  * Return code: No error. Indicates successful completion of an MQTT client
  * operation.
@@ -280,6 +291,8 @@ typedef struct
  */
 typedef int MQTTClient_messageArrived(void* context, char* topicName, int topicLen, MQTTClient_message* message);
 
+typedef int MQTTClient_extendedCmdArrive(void *context, EXTED_CMD cmd, int status, int ret_string_len, char *ret_string);
+
 /**
  * This is a callback function. The client application
  * must provide an implementation of this function to enable asynchronous 
@@ -347,7 +360,8 @@ typedef void MQTTClient_connectionLost(void* context, char* cause);
  * ::MQTTCLIENT_FAILURE if an error occurred.
  */
 DLLExport int MQTTClient_setCallbacks(MQTTClient handle, void* context, MQTTClient_connectionLost* cl,
-									MQTTClient_messageArrived* ma, MQTTClient_deliveryComplete* dc);
+									MQTTClient_messageArrived* ma, MQTTClient_deliveryComplete* dc,
+									MQTTClient_extendedCmdArrive *eca);
 		
 
 /**
@@ -762,7 +776,18 @@ DLLExport int MQTTClient_publish(MQTTClient handle, char* topicName, int payload
 																 MQTTClient_deliveryToken* dt);
 
 DLLExport int MQTTClient_set_alias(MQTTClient handle, char* alias);
-DLLExport int MQTTClient_get_alias(MQTTClient handle, char* alias);
+
+DLLExport int MQTTClient_get_alias(MQTTClient handle, char* parameter);
+
+DLLExport int MQTTClient_get_aliaslist(MQTTClient handle, char* parameter);
+
+DLLExport int MQTTClient_get_topic(MQTTClient handle, char* parameter);
+
+DLLExport int MQTTClient_get_status(MQTTClient handle, char* parameter);
+
+
+DLLExport int MQTTClient_get(MQTTClient handle, EXTED_CMD cmd, int parameter_len, void* parameter,
+							 int qos, int retained, MQTTClient_deliveryToken* deliveryToken);
 
 /** 
   * This function attempts to publish a message to a given topic (see also

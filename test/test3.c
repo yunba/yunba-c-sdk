@@ -743,7 +743,7 @@ int test2a_m(struct Options options)
 	//opts.ssl->enabledCipherSuites = "DEFAULT";
 	//opts.ssl->enabledServerCertAuth = 1;
 
-	rc = MQTTClient_setCallbacks(c, NULL, NULL, multiThread_messageArrived, multiThread_deliveryComplete);
+	rc = MQTTClient_setCallbacks(c, NULL, NULL, multiThread_messageArrived, multiThread_deliveryComplete, NULL);
 	if (!(assert("Good rc from setCallbacks", rc == MQTTCLIENT_SUCCESS, "rc was %d", rc)))
 		goto exit;
 
@@ -1017,7 +1017,7 @@ int test3a_m(struct Options options)
 	if (options.server_key_file != NULL) 
 		opts.ssl->trustStore = options.server_key_file; /*file of certificates trusted by client*/
 
-	rc = MQTTClient_setCallbacks(c, NULL, NULL, multiThread_messageArrived,	multiThread_deliveryComplete);
+	rc = MQTTClient_setCallbacks(c, NULL, NULL, multiThread_messageArrived,	multiThread_deliveryComplete, NULL);
 	if (!(assert("Good rc from setCallbacks", rc == MQTTCLIENT_SUCCESS, "rc was %d", rc)))
 		goto exit;
 
@@ -1219,7 +1219,7 @@ int test4_m(struct Options options)
 	opts.ssl = &sslopts;
 	opts.ssl->enableServerCertAuth = 0;
 
-	rc = MQTTClient_setCallbacks(c, NULL, NULL, multiThread_messageArrived, multiThread_deliveryComplete);
+	rc = MQTTClient_setCallbacks(c, NULL, NULL, multiThread_messageArrived, multiThread_deliveryComplete, NULL);
 	if (!(assert("Good rc from setCallbacks", rc == MQTTCLIENT_SUCCESS, "rc was %d", rc)))
 		goto exit;
 

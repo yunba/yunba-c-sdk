@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 	signal(SIGINT, cfinish);
 	signal(SIGTERM, cfinish);
 
-	rc = MQTTClient_setCallbacks(client, NULL, NULL, messageArrived, NULL);
+	rc = MQTTClient_setCallbacks(client, NULL, NULL, messageArrived, NULL, NULL);
 
 	conn_opts.keepAliveInterval = 300;
 	conn_opts.reliable = 0;

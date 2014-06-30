@@ -90,6 +90,7 @@ void cfinish(int sig)
 {
 	signal(SIGINT, NULL);
 	toStop = 1;
+	printf("-----------\n");
 }
 
 
@@ -140,7 +141,7 @@ int main(int argc, char** argv)
 	signal(SIGINT, cfinish);
 	signal(SIGTERM, cfinish);
 
-	conn_opts.keepAliveInterval = 10;
+	conn_opts.keepAliveInterval = 10000;
 	conn_opts.reliable = 0;
 	conn_opts.cleansession = 1;
 	conn_opts.username = opts.username;
@@ -159,7 +160,7 @@ int main(int argc, char** argv)
 		int topicLen;
 		MQTTClient_message* message = NULL;
 		
-		rc = MQTTClient_receive(client, &topicName, &topicLen, &message, 100000);
+		rc = MQTTClient_receive(client, &topicName, &topicLen, &message, 100);
 		if (message)
 		{
 

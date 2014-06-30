@@ -112,16 +112,42 @@ Presence_msg my_present;
 
 void getopts(int argc, char** argv);
 
+
+int extendedCmdArrive(void *context, EXTED_CMD cmd, int status, int ret_string_len, char *ret_string)
+{
+	char buf[100];
+	memset(buf, 0, 100);
+	memcpy(buf, ret_string, ret_string_len);
+	printf("%s:%02x,%02x,%02x, %s\n", __func__, cmd, status, ret_string_len, buf);
+
+}
+
 int messageArrived(void* context, char* topicName, int topicLen, MQTTClient_message* m)
 {
 	char action[30];
 	char alias[60];
 	int ret = -1;
+	int i;
+	char* payloadptr;
+
 	my_present.action = action;
 	my_present.alias = alias;
 	ret = get_present_info(topicName, m, &my_present);
 	if (ret == 0)
 		printf("action:%s alias:%s\n", my_present.action, my_present.alias);
+
+	printf("Message arrived\n");
+	printf("     topic: %s\n", topicName);
+	printf("   message: ");
+
+	payloadptr = m->payload;
+	for(i = 0; i < m->payloadlen; i++)
+	{
+		putchar(*payloadptr++);
+	}
+	putchar('\n');
+	MQTTClient_freeMessage(&m);
+	MQTTClient_free(topicName);
 
 	/* not expecting any messages */
 	return 1;
@@ -155,9 +181,9 @@ int main(int argc, char** argv)
 
 	
 
-	rc = MQTTClient_setCallbacks(client, NULL, NULL, messageArrived, NULL);
+	rc = MQTTClient_setCallbacks(client, NULL, NULL, messageArrived, NULL, extendedCmdArrive);
 
-	conn_opts.keepAliveInterval = 10;
+	conn_opts.keepAliveInterval = 10000;
 	conn_opts.reliable = 0;
 	conn_opts.cleansession = 1;
 	conn_opts.username = opts.username;
@@ -167,7 +193,14 @@ int main(int argc, char** argv)
 
 	buffer = malloc(opts.maxdatalen);
 
-	MQTTClient_presence(client, topic);
+//	MQTTClient_presence(client, topic);
+
+	int ret = MQTTClient_get_aliaslist(client, topic);
+	printf("get alias:%i\n", ret);
+	ret = MQTTClient_get_status(client, "000000018302");
+	printf("get status:%i\n", ret);
+	ret = MQTTClient_get_topic(client, "000000018302");
+	printf("get topic:%i\n", ret);
 	
 	while (!toStop)
 	{

@@ -29,13 +29,18 @@
 
 int MQTTProtocol_assignMsgId(Clients* client);
 int MQTTProtocol_startPublish(Clients* pubclient, Publish* publish, int qos, int retained, Messages** m);
+int MQTTProtocol_startGet(Clients* getclient, Get* get, int qos, int retained, Messages** m);
 Messages* MQTTProtocol_createMessage(Publish* publish, Messages** mm, int qos, int retained);
 Publications* MQTTProtocol_storePublication(Publish* publish, int* len);
+Messages* MQTTProtocol_createGetMessage(Get* get, Messages** mm, int qos, int retained);
+Publications* MQTTProtocol_storeGet(Get* get, int* len);
+
 int messageIDCompare(void* a, void* b);
 int MQTTProtocol_assignMsgId(Clients* client);
 void MQTTProtocol_removePublication(Publications* p);
 
 int MQTTProtocol_handlePublishes(void* pack, int sock);
+int MQTTProtocol_handleGets(void* pack, int sock);
 int MQTTProtocol_handlePubacks(void* pack, int sock);
 int MQTTProtocol_handlePubrecs(void* pack, int sock);
 int MQTTProtocol_handlePubrels(void* pack, int sock);

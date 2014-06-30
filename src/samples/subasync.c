@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     conn_opts.keepAliveInterval = 300;
     conn_opts.cleansession = 1;
 
-    MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
+    MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered, NULL);
 
     if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
     {

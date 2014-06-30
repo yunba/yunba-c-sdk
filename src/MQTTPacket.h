@@ -40,7 +40,7 @@ enum msgTypes
 {
 	CONNECT = 1, CONNACK, PUBLISH, PUBACK, PUBREC, PUBREL,
 	PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK,
-	PINGREQ, PINGRESP, DISCONNECT
+	PINGREQ, PINGRESP, DISCONNECT,GET
 };
 
 
@@ -184,6 +184,50 @@ typedef struct
 
 
 /**
+ * Data for a payload in get-packet.
+ */
+typedef struct {
+	uint8_t ext_cmd; /* extended command */
+	uint8_t ext_buf_len; /* the length of parameters*/
+	uint8_t* ext_buf;  /* the parameters */
+} Ext_payload;
+
+
+/**
+ * Data for a get packet.
+ */
+typedef struct {
+	Header header;	/**< MQTT header byte */
+	uint64_t msgId;		/**< MQTT message id */
+	Ext_payload ext_payload;
+	int ext_payloadlen;	/**< payload length */
+} Get;
+
+
+/**
+ * Data for.
+ */
+typedef struct {
+	uint8_t ext_cmd;
+	uint8_t status;
+	uint8_t len;
+	char *ret_string;
+} Ext_ack_payload;
+
+
+/**
+ * Data for.
+ */
+typedef struct
+{
+	Header header;	/**< MQTT header byte */
+	uint64_t msgId;		/**< MQTT message id */
+	Ext_ack_payload ack_payload;
+} Ext_ack;
+
+
+
+/**
  * Data for one of the ack packets.
  */
 typedef struct
@@ -197,6 +241,7 @@ typedef Ack Pubrec;
 typedef Ack Pubrel;
 typedef Ack Pubcomp;
 typedef Ack Unsuback;
+typedef Ext_ack Getack;
 
 int MQTTPacket_encode(char* buf, int length);
 int MQTTPacket_decode(networkHandles* net, int* value);
@@ -218,8 +263,11 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 void* MQTTPacket_header_only(unsigned char aHeader, char* data, int datalen);
 int MQTTPacket_send_disconnect(networkHandles* net, char* clientID);
 
+void* MQTTPacket_get(unsigned char aHeader, char* data, int datalen);
+void MQTTPacket_freeGet(Getack* pack);
 void* MQTTPacket_publish(unsigned char aHeader, char* data, int datalen);
 void MQTTPacket_freePublish(Publish* pack);
+int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandles* net, char* clientID);
 int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, networkHandles* net, char* clientID);
 int MQTTPacket_send_puback(uint64_t msgid, networkHandles* net, char* clientID);
 void* MQTTPacket_ack(unsigned char aHeader, char* data, int datalen);

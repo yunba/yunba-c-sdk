@@ -159,6 +159,36 @@ int MQTTProtocol_startPublish(Clients* pubclient, Publish* publish, int qos, int
 }
 
 
+
+int MQTTProtocol_startGet(Clients* getclient, Get* get, int qos, int retained, Messages** m)
+{
+	Get p = *get;
+	int rc = 0;
+
+	FUNC_ENTRY;
+#if 0
+	if (qos > 0)
+	{
+		p.msgId = get->msgId = MQTTProtocol_assignMsgId(getclient);
+		*mm = MQTTProtocol_createMessage(get, mm, qos, retained);
+		ListAppend(pubclient->outboundMsgs, *mm, (*mm)->len);
+		/* we change these pointers to the saved message location just in case the packet could not be written
+		entirely; the socket buffer will use these locations to finish writing the packet */
+		p.payload = (*mm)->publish->payload;
+		p.topic = (*mm)->publish->topic;
+	}
+	rc = MQTTProtocol_startPublishCommon(pubclient, &p, qos, retained);
+#else
+	get->msgId = MQTTProtocol_assignMsgId(getclient);
+	rc = MQTTPacket_send_get(get, 0, qos, retained, &getclient->net, getclient->clientID);
+#endif
+	FUNC_EXIT_RC(rc);
+	return rc;
+
+}
+
+
+
 /**
  * Copy and store message data for retries
  * @param publish the publication data
@@ -301,6 +331,66 @@ int MQTTProtocol_handlePublishes(void* pack, int sock)
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
+
+
+int MQTTProtocol_handleGets(void* pack, int sock)
+{
+	Getack* getack = (Getack*)pack;
+	Clients* client = NULL;
+	char* clientid = NULL;
+	int rc = TCPSOCKET_COMPLETE;
+
+	FUNC_ENTRY;
+//	printf("------>%s, %s, %d\n", __func__, getack->ack_payload.ret_string, getack->ack_payload.ext_cmd);
+
+	client = (Clients*)(ListFindItem(bstate->clients, &sock, clientSocketCompare)->content);
+	clientid = client->clientID;
+//	Log(LOG_PROTOCOL, 11, NULL, sock, clientid, getack->msgId, get->header.bits.qos,
+//			getack->header.bits.retain, min(20, getack->ext_payloadlen), get->ext_payload);
+
+	/* here we needn't process some just like publish. only to parse ext ack, get one callback. */
+#if 0
+	if (get->header.bits.qos == 0)
+		Protocol_processPublication(get, client);
+	else if (get->header.bits.qos == 1)
+	{
+		/* send puback before processing the publications because a lot of return publications could fill up the socket buffer */
+		rc = MQTTPacket_send_puback(publish->msgId, &client->net, client->clientID);
+		/* if we get a socket error from sending the puback, should we ignore the publication? */
+		Protocol_processPublication(publish, client);
+	}
+	else if (publish->header.bits.qos == 2)
+	{
+		/* store publication in inbound list */
+		int len;
+		ListElement* listElem = NULL;
+		Messages* m = malloc(sizeof(Messages));
+		Publications* p = MQTTProtocol_storePublication(publish, &len);
+		m->publish = p;
+		m->msgid = publish->msgId;
+		m->qos = publish->header.bits.qos;
+		m->retain = publish->header.bits.retain;
+		m->nextMessageType = PUBREL;
+		if ( ( listElem = ListFindItem(client->inboundMsgs, &(m->msgid), messageIDCompare) ) != NULL )
+		{   /* discard queued publication with same msgID that the current incoming message */
+			Messages* msg = (Messages*)(listElem->content);
+			MQTTProtocol_removePublication(msg->publish);
+			ListInsert(client->inboundMsgs, m, sizeof(Messages) + len, listElem);
+			ListRemove(client->inboundMsgs, msg);
+		} else
+			ListAppend(client->inboundMsgs, m, sizeof(Messages) + len);
+		rc = MQTTPacket_send_pubrec(publish->msgId, &client->net, client->clientID);
+		publish->topic = NULL;
+	}
+	MQTTPacket_freePublish(publish);
+#endif
+	MQTTPacket_freeGet(getack);
+	FUNC_EXIT_RC(rc);
+	return rc;
+}
+
+
+
 
 /**
  * Process an incoming puback packet for a socket
