@@ -16,6 +16,10 @@
  *    Ian Craggs - fix for bug 432903 - queue persistence
  *******************************************************************************/
 
+#if defined(__cplusplus)
+ extern "C" {
+#endif
+
 #include "Clients.h"
 
 /** Stem of the key for a sent PUBLISH QoS1 or QoS2 */
@@ -31,7 +35,7 @@
 #define PERSISTENCE_MAX_KEY_LENGTH 8
 
 int MQTTPersistence_create(MQTTClient_persistence** per, int type, void* pcontext);
-int MQTTPersistence_initialize(Clients* c, char* serverURI);
+int MQTTPersistence_initialize(Clients* c, const char* serverURI);
 int MQTTPersistence_close(Clients* c);
 int MQTTPersistence_clear(Clients* c);
 int MQTTPersistence_restore(Clients* c);
@@ -65,3 +69,6 @@ typedef struct
 int MQTTPersistence_unpersistQueueEntry(Clients* client, MQTTPersistence_qEntry* qe);
 int MQTTPersistence_persistQueueEntry(Clients* aclient, MQTTPersistence_qEntry* qe);
 int MQTTPersistence_restoreMessageQueue(Clients* c);
+#ifdef __cplusplus
+     }
+#endif

@@ -233,7 +233,7 @@ long MQTTClient_elapsed(struct timeval start)
 #endif
 
 
-int MQTTClient_create(MQTTClient* handle, char* serverURI, char* clientId,
+int MQTTClient_create(MQTTClient* handle, const char* serverURI, const char* clientId,
 		int persistence_type, void* persistence_context)
 {
 	int rc = 0;
@@ -282,9 +282,7 @@ int MQTTClient_create(MQTTClient* handle, char* serverURI, char* clientId,
 	}
 #endif
 	m->serverURI = malloc(strlen(serverURI)+1);
-	strcpy(m->serverURI, serverURI);
-
-//	printf("%s,%s\n", __func__, m->serverURI);
+	MQTTStrncpy(m->serverURI, serverURI,strlen(serverURI)+1);
 	ListAppend(handles, m, sizeof(MQTTClients));
 
 	m->c = malloc(sizeof(Clients));
@@ -294,7 +292,7 @@ int MQTTClient_create(MQTTClient* handle, char* serverURI, char* clientId,
 	m->c->inboundMsgs = ListInitialize();
 	m->c->messageQueue = ListInitialize();
 	m->c->clientID = malloc(strlen(clientId)+1);
-	strcpy(m->c->clientID, clientId);
+	MQTTStrncpy(m->c->clientID, clientId,strlen(clientId)+1);
 	m->connect_sem = Thread_create_sem();
 	m->connack_sem = Thread_create_sem();
 	m->suback_sem = Thread_create_sem();
@@ -375,7 +373,7 @@ void MQTTClient_destroy(MQTTClient* handle)
 	{
 		int saved_socket = m->c->net.socket;
 		char* saved_clientid = malloc(strlen(m->c->clientID)+1);
-		strcpy(saved_clientid, m->c->clientID);
+		MQTTStrncpy(saved_clientid, m->c->clientID,strlen(m->c->clientID)+1);
 #if !defined(NO_PERSISTENCE)
 		MQTTPersistence_close(m->c);
 #endif
@@ -767,7 +765,7 @@ void Protocol_processPublication(Publish* publish, Clients* client)
 }
 
 
-int MQTTClient_connectURIVersion(MQTTClient handle, MQTTClient_connectOptions* options, char* serverURI, int MQTTVersion,
+int MQTTClient_connectURIVersion(MQTTClient handle, MQTTClient_connectOptions* options, const char* serverURI, int MQTTVersion,
 	START_TIME_TYPE start, long millisecsTimeout)
 {
 	MQTTClients* m = handle;
@@ -944,7 +942,7 @@ exit:
 }
 
 
-int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options, char* serverURI)
+int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options, const char* serverURI)
 {
 	MQTTClients* m = handle;
 	START_TIME_TYPE start;
@@ -971,11 +969,11 @@ int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options,
 	{
 		m->c->will = malloc(sizeof(willMessages));
 		m->c->will->msg = malloc(strlen(options->will->message) + 1); 
-		strcpy(m->c->will->msg, options->will->message);
+		MQTTStrncpy(m->c->will->msg , options->will->message,strlen(options->will->message) + 1);
 		m->c->will->qos = options->will->qos;
 		m->c->will->retained = options->will->retained;
 		m->c->will->topic = malloc(strlen(options->will->topicName) + 1);
-		strcpy(m->c->will->topic, options->will->topicName);
+		MQTTStrncpy(m->c->will->topic , options->will->topicName,strlen(options->will->topicName) + 1);
 	}
 	
 #if defined(OPENSSL)
@@ -1002,27 +1000,27 @@ int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options,
 		if (options->ssl->trustStore)
 		{
 			m->c->sslopts->trustStore = malloc(strlen(options->ssl->trustStore) + 1);
-			strcpy(m->c->sslopts->trustStore, options->ssl->trustStore); 
+			MQTTStrncpy(m->c->sslopts->trustStore , options->ssl->trustStore,strlen(options->ssl->trustStore)+1);
 		}
 		if (options->ssl->keyStore)
 		{
 			m->c->sslopts->keyStore = malloc(strlen(options->ssl->keyStore) + 1);
-			strcpy(m->c->sslopts->keyStore, options->ssl->keyStore);
+			MQTTStrncpy(m->c->sslopts->keyStore , options->ssl->keyStore,strlen(options->ssl->keyStore)+1);
 		}
 		if (options->ssl->privateKey)
 		{
 			m->c->sslopts->privateKey = malloc(strlen(options->ssl->privateKey) + 1);
-			strcpy(m->c->sslopts->privateKey, options->ssl->privateKey);
+			MQTTStrncpy(m->c->sslopts->privateKey , options->ssl->privateKey,strlen(options->ssl->privateKey)+1);
 		}
 		if (options->ssl->privateKeyPassword)
 		{
 			m->c->sslopts->privateKeyPassword = malloc(strlen(options->ssl->privateKeyPassword) + 1);
-			strcpy(m->c->sslopts->privateKeyPassword, options->ssl->privateKeyPassword);
+			MQTTStrncpy(m->c->sslopts->privateKeyPassword , options->ssl->privateKeyPassword,strlen(options->ssl->privateKeyPassword)+1);
 		}
 		if (options->ssl->enabledCipherSuites)
 		{
 			m->c->sslopts->enabledCipherSuites = malloc(strlen(options->ssl->enabledCipherSuites) + 1);
-			strcpy(m->c->sslopts->enabledCipherSuites, options->ssl->enabledCipherSuites);
+			MQTTStrncpy(m->c->sslopts->enabledCipherSuites , options->ssl->enabledCipherSuites,strlen(options->ssl->enabledCipherSuites)+1);
 		}
 		m->c->sslopts->enableServerCertAuth = options->ssl->enableServerCertAuth;
 	}
@@ -1217,7 +1215,7 @@ int MQTTClient_isConnected(MQTTClient handle)
 }
 
 
-int MQTTClient_subscribeMany(MQTTClient handle, int count, char** topic, int* qos)
+int MQTTClient_subscribeMany(MQTTClient handle, int count, char* const* topic, int* qos)
 {
 	MQTTClients* m = handle;
 	List* topics = ListInitialize();
@@ -1314,12 +1312,13 @@ int MQTTClient_subscribe_many(MQTTClient handle, int count, char** topic)
 }
 
 
-int MQTTClient_subscribe(MQTTClient handle, char* topic)
+
+int MQTTClient_subscribe(MQTTClient handle, const char* topic, int qos)
 {
 	int rc = 0;
-	int qos = DEFAULT_QOS;
+	char *const topics[] = {(char*)topic};
 	FUNC_ENTRY;
-	rc = MQTTClient_subscribeMany(handle, 1, &topic, &qos);
+	rc = MQTTClient_subscribeMany(handle, 1, topics, &qos);
 	if (qos == MQTT_BAD_SUBSCRIBE) /* addition for MQTT 3.1.1 - error code from subscribe */
 		rc = MQTT_BAD_SUBSCRIBE;
 	FUNC_EXIT_RC(rc);
@@ -1337,9 +1336,6 @@ int MQTTClient_dosubscribe(MQTTClient handle, char* topic, int qos)
         return rc;
 }
 
-
-
-
 int MQTTClient_presence(MQTTClient handle, char* topic)
 {
 	char temp[100];
@@ -1348,7 +1344,7 @@ int MQTTClient_presence(MQTTClient handle, char* topic)
 }
 
 
-int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char** topic)
+int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char* const* topic)
 {
 	MQTTClients* m = handle;
 	List* topics = ListInitialize();
@@ -1418,12 +1414,12 @@ int MQTTClient_unsubscribe_many(MQTTClient handle, int count, char** topic)
 }
 
 
-int MQTTClient_unsubscribe(MQTTClient handle, char* topic)
+int MQTTClient_unsubscribe(MQTTClient handle, const char* topic)
 {
 	int rc = 0;
-
+	char *const topics[] = {(char*)topic};
 	FUNC_ENTRY;
-	rc = MQTTClient_unsubscribeMany(handle, 1, &topic);
+	rc = MQTTClient_unsubscribeMany(handle, 1, topics);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -1437,8 +1433,7 @@ int MQTTClient_unpresence(MQTTClient handle, char* topic)
 }
 
 
-
-int MQTTClient_dopublish(MQTTClient handle, char* topicName, int payloadlen, void* payload,
+int MQTTClient_publish(MQTTClient handle, const char* topicName, int payloadlen, void* payload,
 							 int qos, int retained, MQTTClient_deliveryToken* deliveryToken)
 {
 	int rc = MQTTCLIENT_SUCCESS;
@@ -1484,7 +1479,7 @@ int MQTTClient_dopublish(MQTTClient handle, char* topicName, int payloadlen, voi
 
 	p->payload = payload;
 	p->payloadlen = payloadlen;
-	p->topic = topicName;
+	p->topic = (char*)topicName;
 	p->msgId = -1;
 
 	rc = MQTTProtocol_startPublish(m->c, p, qos, retained, &msg);
@@ -1562,7 +1557,7 @@ int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data)
 
 
 
-int MQTTClient_publishMessage(MQTTClient handle, char* topicName, MQTTClient_message* message,
+int MQTTClient_publishMessage(MQTTClient handle, const char* topicName, MQTTClient_message* message,
 															 MQTTClient_deliveryToken* deliveryToken)
 {
 	int rc = MQTTCLIENT_SUCCESS;

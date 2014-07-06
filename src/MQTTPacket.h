@@ -33,7 +33,7 @@ include "Clients"
 BE*/
 
 typedef unsigned int bool;
-typedef void* (*pf)(unsigned char, char*, int);
+typedef void* (*pf)(unsigned char, char*, size_t);
 
 #define BAD_MQTT_PACKET -4
 
@@ -270,30 +270,30 @@ unsigned char readChar(char** pptr);
 void writeChar(char** pptr, char c);
 void writeInt(char** pptr, int anInt);
 void writeInt64(char** pptr, uint64_t anInt);
-void writeUTF(char** pptr, char* string);
+void writeUTF(char** pptr, const char* string);
 
 char* MQTTPacket_name(int ptype);
 
 void* MQTTPacket_Factory(networkHandles* net, int* error);
-int MQTTPacket_send(networkHandles* net, Header header, char* buffer, int buflen);
-int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffers, int* buflens);
+int MQTTPacket_send(networkHandles* net, Header header, char* buffer, size_t buflen, int free);
+int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffers, size_t* buflens, int* frees);
 
-void* MQTTPacket_header_only(unsigned char aHeader, char* data, int datalen);
-int MQTTPacket_send_disconnect(networkHandles* net, char* clientID);
+void* MQTTPacket_header_only(unsigned char aHeader, char* data, size_t datalen);
+int MQTTPacket_send_disconnect(networkHandles* net, const char* clientID);
 
 void* MQTTPacket_get(unsigned char aHeader, char* data, int datalen);
 void MQTTPacket_freeGet(Getack* pack);
-void* MQTTPacket_publish(unsigned char aHeader, char* data, int datalen);
+void* MQTTPacket_publish(unsigned char aHeader, char* data, size_t datalen);
 void MQTTPacket_freePublish(Publish* pack);
-int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandles* net, char* clientID);
-int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, networkHandles* net, char* clientID);
-int MQTTPacket_send_puback(uint64_t msgid, networkHandles* net, char* clientID);
-void* MQTTPacket_ack(unsigned char aHeader, char* data, int datalen);
+int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandles* net, const char* clientID);
+int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, networkHandles* net, const char* clientID);
+int MQTTPacket_send_puback(uint64_t msgid, networkHandles* net, const char* clientID);
+void* MQTTPacket_ack(unsigned char aHeader, char* data, size_t datalen);
 
 void MQTTPacket_freeSuback(Suback* pack);
-int MQTTPacket_send_pubrec(uint64_t msgid, networkHandles* net, char* clientID);
-int MQTTPacket_send_pubrel(uint64_t msgid, int dup, networkHandles* net, char* clientID);
-int MQTTPacket_send_pubcomp(uint64_t msgid, networkHandles* net, char* clientID);
+int MQTTPacket_send_pubrec(uint64_t msgid, networkHandles* net, const char* clientID);
+int MQTTPacket_send_pubrel(uint64_t msgid, int dup, networkHandles* net, const char* clientID);
+int MQTTPacket_send_pubcomp(uint64_t msgid, networkHandles* net, const char* clientID);
 
 void MQTTPacket_free_packet(MQTTPacket* pack);
 

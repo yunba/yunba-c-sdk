@@ -105,7 +105,7 @@ exit:
  * @param datalen the length of the rest of the packet
  * @return pointer to the packet structure
  */
-void* MQTTPacket_connack(unsigned char aHeader, char* data, int datalen)
+void* MQTTPacket_connack(unsigned char aHeader, char* data, size_t datalen)
 {
 	Connack* pack = malloc(sizeof(Connack));
 	char* curdata = data;
@@ -125,15 +125,16 @@ void* MQTTPacket_connack(unsigned char aHeader, char* data, int datalen)
  * @param clientID the string client identifier, only used for tracing
  * @return the completion code (e.g. TCPSOCKET_COMPLETE)
  */
-int MQTTPacket_send_pingreq(networkHandles* net, char* clientID)
+int MQTTPacket_send_pingreq(networkHandles* net, const char* clientID)
 {
 	Header header;
 	int rc = 0;
+	size_t buflen = 0;
 
 	FUNC_ENTRY;
 	header.byte = 0;
 	header.bits.type = PINGREQ;
-	rc = MQTTPacket_send(net, header, NULL, 0);
+	rc = MQTTPacket_send(net, header, NULL, buflen,0);
 	Log(LOG_PROTOCOL, 20, NULL, net->socket, clientID, rc);
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -150,7 +151,7 @@ int MQTTPacket_send_pingreq(networkHandles* net, char* clientID)
  * @param clientID the string client identifier, only used for tracing
  * @return the completion code (e.g. TCPSOCKET_COMPLETE)
  */
-int MQTTPacket_send_subscribe(List* topics, List* qoss, uint64_t msgid, int dup, networkHandles* net, char* clientID)
+int MQTTPacket_send_subscribe(List* topics, List* qoss, uint64_t msgid, int dup, networkHandles* net, const char* clientID)
 {
 	Header header;
 	char *data, *ptr;
@@ -192,7 +193,7 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, uint64_t msgid, int dup,
  * @param datalen the length of the rest of the packet
  * @return pointer to the packet structure
  */
-void* MQTTPacket_suback(unsigned char aHeader, char* data, int datalen)
+void* MQTTPacket_suback(unsigned char aHeader, char* data, size_t datalen)
 {
 	Suback* pack = malloc(sizeof(Suback));
 	char* curdata = data;
@@ -222,7 +223,7 @@ void* MQTTPacket_suback(unsigned char aHeader, char* data, int datalen)
  * @param clientID the string client identifier, only used for tracing
  * @return the completion code (e.g. TCPSOCKET_COMPLETE)
  */
-int MQTTPacket_send_unsubscribe(List* topics, uint64_t msgid, int dup, networkHandles* net, char* clientID)
+int MQTTPacket_send_unsubscribe(List* topics, uint64_t msgid, int dup, networkHandles* net, const char* clientID)
 {
 	Header header;
 	char *data, *ptr;
