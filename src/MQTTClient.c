@@ -283,7 +283,7 @@ int MQTTClient_create(MQTTClient* handle, char* serverURI, char* clientId,
 	m->serverURI = malloc(strlen(serverURI)+1);
 	strcpy(m->serverURI, serverURI);
 
-	printf("%s,%s\n", __func__, m->serverURI);
+//	printf("%s,%s\n", __func__, m->serverURI);
 	ListAppend(handles, m, sizeof(MQTTClients));
 
 	m->c = malloc(sizeof(Clients));
