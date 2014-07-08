@@ -18,7 +18,7 @@
 #*******************************************************************************/
 
 # Note: on OS X you should install XCode and the associated command-line tools
-
+DESTDIR = ./__install
 SHELL = /bin/sh
 .PHONY: clean, mkdir, install, uninstall, html 
 
@@ -53,26 +53,28 @@ HEADERS = $(srcdir)/*.h
 HEADERS_C = $(filter-out $(srcdir)/MQTTAsync.h, $(HEADERS))
 HEADERS_A = $(HEADERS)
 
-SAMPLE_FILES_C = stdinpub stdoutsub pubsync pubasync subasync stdinpub_present stdoutsub_demo
+#SAMPLE_FILES_C = stdinpub stdoutsub pubsync pubasync subasync stdinpub_present stdoutsub_demo
+SAMPLE_FILES_C = stdinpub stdoutsub stdinpub_present stdoutsub_demo
 SYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_C}}
 
 SAMPLE_FILES_A = stdoutsuba MQTTAsync_subscribe MQTTAsync_publish
 ASYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_A}}
 
-TEST_FILES_C = test1
-SYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_C}}
+#TEST_FILES_C = test1
+#SYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_C}}
 
-TEST_FILES_CS = test3
-SYNC_SSL_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_CS}}
+#TEST_FILES_CS = test3
+#SYNC_SSL_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_CS}}
 
-TEST_FILES_A = test4
-ASYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_A}}
+#TEST_FILES_A = test4
+#ASYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_A}}
 
-TEST_FILES_AS = test5
-ASYNC_SSL_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_AS}}
+#TEST_FILES_AS = test5
+#ASYNC_SSL_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_AS}}
 
 # The names of the four different libraries to be built
-MQTTLIB_C = paho-mqtt3c
+#MQTTLIB_C = paho-mqtt3c
+MQTTLIB_C = yunba
 MQTTLIB_CS = paho-mqtt3cs
 MQTTLIB_A = paho-mqtt3a
 MQTTLIB_AS = paho-mqtt3as
@@ -123,19 +125,19 @@ clean:
 	
 mkdir:
 	-mkdir -p ${blddir}/samples
-	-mkdir -p ${blddir}/test
+#	-mkdir -p ${blddir}/test
 
-${SYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
+#${SYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
+#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
 
-${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_CS} ${FLAGS_EXE} -lssl
+#${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
+#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_CS} ${FLAGS_EXE} -lssl
 
-${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE} 
+#${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
+#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE} 
 
-${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_AS} ${FLAGS_EXE} -lssl
+#${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
+#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_AS} ${FLAGS_EXE} -lssl
 
 ${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c
 	${CC} -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
@@ -251,17 +253,17 @@ mkdir:
 	-mkdir -p ${blddir}/samples
 	-mkdir -p ${blddir}/test
 
-${SYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
+#${SYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
+#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
 
-${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_CS} ${FLAGS_EXE} -lssl
+#${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
+#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_CS} ${FLAGS_EXE} -lssl
 
-${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -ggdb -O0 -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE} 
+#${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
+#	${CC} -g -ggdb -O0 -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE} 
 
-${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-	${CC} -g -ggdb -O0 -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_AS} ${FLAGS_EXE} -lssl
+#${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
+#	${CC} -g -ggdb -O0 -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_AS} ${FLAGS_EXE} -lssl
 
 ${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c
 	${CC} -ggdb -O0 -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}

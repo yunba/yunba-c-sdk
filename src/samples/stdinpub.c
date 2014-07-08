@@ -172,11 +172,11 @@ int main(int argc, char** argv)
 				
 		if (opts.verbose)
 				printf("Publishing data of length %d\n", data_len);
-		rc = MQTTClient_publish(client, topic, data_len, buffer, opts.qos, opts.retained, NULL);
+		rc = MQTTClient_publish(client, topic, data_len, buffer);
 		if (rc != 0)
 		{
 			myconnect(&client, &conn_opts);
-			rc = MQTTClient_publish(client, topic, data_len, buffer, opts.qos, opts.retained, NULL);
+			rc = MQTTClient_publish(client, topic, data_len, buffer);
 		}
 		if (opts.qos > 0)
 			MQTTClient_yield();

@@ -161,6 +161,7 @@ int main(int argc, char** argv)
 	char* buffer = NULL;
 	int rc = 0;
 	char url[100];
+	char broker[100];
 
 	if (argc < 2)
 		usage();
@@ -168,13 +169,20 @@ int main(int argc, char** argv)
 	getopts(argc, argv);
 	
 	sprintf(url, "%s:%s", opts.host, opts.port);
-  if (opts.verbose)
+//  if (opts.verbose)
 		printf("URL is %s\n", url);
 	
 	topic = argv[1];
 	printf("Using topic %s\n", topic);
 
 	rc = MQTTClient_create(&client, url, opts.clientid, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+	MQTTClient_get_broker(&client, broker);
+	printf("get broker:%s\n", broker);
+
+	MQTTClient_set_broker(&client, "localhost");
+
+	MQTTClient_get_broker(&client, broker);
+	printf("get broker:%s\n", broker);
 
 	signal(SIGINT, cfinish);
 	signal(SIGTERM, cfinish);
@@ -196,11 +204,14 @@ int main(int argc, char** argv)
 //	MQTTClient_presence(client, topic);
 
 	int ret = MQTTClient_get_aliaslist(client, topic);
-	printf("get alias:%i\n", ret);
-	ret = MQTTClient_get_status(client, "000000018302");
-	printf("get status:%i\n", ret);
+	printf("get aliaslist:%i\n", ret);
 	ret = MQTTClient_get_topic(client, "000000018302");
 	printf("get topic:%i\n", ret);
+	ret = MQTTClient_get_status(client, "000000018302");
+	printf("get status:%i\n", ret);
+
+	ret = MQTTClient_report(client, "domytest", "abc");
+	printf("report status:%i\n", ret);
 	
 	while (!toStop)
 	{
@@ -221,11 +232,11 @@ int main(int argc, char** argv)
 				
 		if (opts.verbose)
 				printf("Publishing data of length %d\n", data_len);
-		rc = MQTTClient_publish(client, topic, data_len, buffer, opts.qos, opts.retained, NULL);
+		rc = MQTTClient_publish(client, topic, data_len, buffer);
 		if (rc != 0)
 		{
 			myconnect(&client, &conn_opts);
-			rc = MQTTClient_publish(client, topic, data_len, buffer, opts.qos, opts.retained, NULL);
+			rc = MQTTClient_publish(client, topic, data_len, buffer);
 		}
 		if (opts.qos > 0)
 			MQTTClient_yield();

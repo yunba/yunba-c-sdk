@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
     }
     printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
            "Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
-    MQTTClient_subscribe(client, TOPIC, QOS);
+    MQTTClient_subscribe(client, TOPIC);
 
     do 
     {

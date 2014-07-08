@@ -1,101 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2009, 2014 IBM Corp.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Eclipse Distribution License v1.0 which accompany this distribution. 
- *
- * The Eclipse Public License is available at 
- *    http://www.eclipse.org/legal/epl-v10.html
- * and the Eclipse Distribution License is available at 
- *   http://www.eclipse.org/org/documents/edl-v10.php.
- *
- * Contributors:
- *    Ian Craggs - initial API and implementation and/or initial documentation
- *    Ian Craggs, Allan Stockdill-Mander - SSL updates
- *    Ian Craggs - multiple server connection support
- *******************************************************************************/
-
-/**
- * @cond MQTTClient_internal
- * @mainpage MQTT Client Library Internals
- * In the beginning there was one MQTT C client library, MQTTClient, as implemented in MQTTClient.c
- * This library was designed to be easy to use for applications which didn't mind if some of the calls 
- * blocked for a while.  For instance, the MQTTClient_connect call will block until a successful
- * connection has completed, or a connection has failed, which could be as long as the "connection 
- * timeout" interval, whose default is 30 seconds.
- * 
- * However in mobile devices and other windowing environments, blocking on the GUI thread is a bad
- * thing as it causes the user interface to freeze.  Hence a new API, MQTTAsync, implemented 
- * in MQTTAsync.c, was devised.  There are no blocking calls in this library, so it is well suited 
- * to GUI and mobile environments, at the expense of some extra complexity.
- * 
- * Both libraries are designed to be sparing in the use of threads.  So multiple client objects are
- * handled by one or two threads, with a select call in Socket_getReadySocket(), used to determine 
- * when a socket has incoming data.
- *
- * @endcond
- * @cond MQTTClient_main
- * @mainpage MQTT Client library for C
- * &copy; Copyright IBM Corp. 2009, 2013
- * 
- * @brief An MQTT client library in C.
- *
- * These pages describe the original more synchronous API which might be 
- * considered easier to use.  Some of the calls will block.  For the new
- * totally asynchronous API where no calls block, which is especially suitable
- * for use in windowed environments, see the
- * <a href="../Casync/index.html">MQTT C Client Asynchronous API Documentation</a>.
- *
- * An MQTT client application connects to MQTT-capable servers.
- * A typical client is responsible for collecting information from a telemetry 
- * device and publishing the information to the server. It can also subscribe 
- * to topics, receive messages, and use this information to control the 
- * telemetry device.
- * 
- * MQTT clients implement the published MQTT v3 protocol. You can write your own
- * API to the MQTT protocol using the programming language and platform of your 
- * choice. This can be time-consuming and error-prone.
- * 
- * To simplify writing MQTT client applications, this library encapsulates
- * the MQTT v3 protocol for you. Using this library enables a fully functional 
- * MQTT client application to be written in a few lines of code.
- * The information presented here documents the API provided
- * by the MQTT Client library for C.
- * 
- * <b>Using the client</b><br>
- * Applications that use the client library typically use a similar structure:
- * <ul>
- * <li>Create a client object</li>
- * <li>Set the options to connect to an MQTT server</li>
- * <li>Set up callback functions if multi-threaded (asynchronous mode) 
- * operation is being used (see @ref async).</li>
- * <li>Subscribe to any topics the client needs to receive</li>
- * <li>Repeat until finished:</li>
- *     <ul>
- *     <li>Publish any messages the client needs to</li>
- *     <li>Handle any incoming messages</li>
- *     </ul>
- * <li>Disconnect the client</li>
- * <li>Free any memory being used by the client</li>
- * </ul>
- * Some simple examples are shown here:
- * <ul>
- * <li>@ref pubsync</li>
- * <li>@ref pubasync</li>
- * <li>@ref subasync</li>
- * </ul>
- * Additional information about important concepts is provided here:
- * <ul>
- * <li>@ref async</li>
- * <li>@ref wildcard</li>
- * <li>@ref qos</li>
- * <li>@ref tracing</li>
- * </ul>
- * @endcond
- */
-
-/// @cond EXCLUDE
 #if !defined(MQTTCLIENT_H)
 #define MQTTCLIENT_H
 
@@ -109,11 +11,10 @@
 
 #include <stdio.h>
 #include <inttypes.h>
+#include "cJSON.h"
+
 /// @endcond
 
-#if !defined(NO_PERSISTENCE)
-#include "MQTTClientPersistence.h"
-#endif
 
 typedef enum {
 	GET_ALIAS =1,
@@ -171,6 +72,27 @@ typedef enum {
  * Return code: A QoS value that falls outside of the acceptable range (0,1,2)
  */
 #define MQTTCLIENT_BAD_QOS -9
+
+
+
+#define MQTTCLIENT_PERSISTENCE_DEFAULT 0
+/**
+  * This <i>persistence_type</i> value specifies a memory-based 
+  * persistence mechanism (see MQTTClient_create()).
+  */
+#define MQTTCLIENT_PERSISTENCE_NONE 1
+/**
+  * This <i>persistence_type</i> value specifies an application-specific 
+  * persistence mechanism (see MQTTClient_create()).
+  */
+#define MQTTCLIENT_PERSISTENCE_USER 2
+
+/** 
+  * Application-specific persistence functions must return this error code if 
+  * there is a problem executing the function. 
+  */
+#define MQTTCLIENT_PERSISTENCE_ERROR -2
+
 
 
 typedef struct {
@@ -611,12 +533,6 @@ typedef struct
 
 #define MQTTClient_connectOptions_initializer { {'M', 'Q', 'T', 'C'}, 2, 60, 1, 1, NULL, NULL, NULL, 30, 20, NULL, 0, NULL }
 
-/**
-  * MQTTClient_libraryInfo is used to store details relating to the currently used
-  * library such as the version in use, the time it was built and relevant openSSL
-  * options. 
-  * There is one static instance of this struct in MQTTClient.c
-  */
 
 typedef struct
 {
@@ -624,11 +540,6 @@ typedef struct
 	const char* value;
 } MQTTClient_nameValue;
 
-/**
-  * This function returns version information about the library.
-  * no trace information will be returned.
-  * @return an array of strings describing the library.  The last entry is a NULL pointer.
-  */
 DLLExport MQTTClient_nameValue* MQTTClient_getVersionInfo(void);
 
 /**
@@ -701,7 +612,6 @@ DLLExport int MQTTClient_isConnected(MQTTClient handle);
   */
 DLLExport int MQTTClient_subscribe(MQTTClient handle, char* topic);
 
-DLLExport int MQTTClient_dosubscribe(MQTTClient handle, char* topic, int qos);
 
 DLLExport int MQTTClient_presence(MQTTClient handle, char* topic);
 
@@ -709,79 +619,11 @@ DLLExport int MQTTClient_unpresence(MQTTClient handle, char* topic);
 
 DLLExport int get_present_info(char *topicName, MQTTClient_message* m, Presence_msg *presence_status);
 
-/**
-  * This function attempts to subscribe a client to a list of topics, which may
-  * contain wildcards (see @ref wildcard). This call also specifies the 
-  * @ref qos requested for each topic (see also MQTTClient_subscribe()). 
-  * @param handle A valid client handle from a successful call to 
-  * MQTTClient_create(). 
-  * @param count The number of topics for which the client is requesting 
-  * subscriptions.
-  * @param topic An array (of length <i>count</i>) of pointers to 
-  * topics, each of which may include wildcards.
-  * @param qos An array (of length <i>count</i>) of @ref qos
-  * values. qos[n] is the requested QoS for topic[n].
-  * @return ::MQTTCLIENT_SUCCESS if the subscription request is successful. 
-  * An error code is returned if there was a problem registering the 
-  * subscriptions. 
-  */
-DLLExport int MQTTClient_subscribeMany(MQTTClient handle, int count, char** topic, int* qos);
-
-/** 
-  * This function attempts to remove an existing subscription made by the 
-  * specified client.
-  * @param handle A valid client handle from a successful call to 
-  * MQTTClient_create(). 
-  * @param topic The topic for the subscription to be removed, which may 
-  * include wildcards (see @ref wildcard).
-  * @return ::MQTTCLIENT_SUCCESS if the subscription is removed. 
-  * An error code is returned if there was a problem removing the 
-  * subscription. 
-  */
 DLLExport int MQTTClient_unsubscribe(MQTTClient handle, char* topic);
 
-/** 
-  * This function attempts to remove existing subscriptions to a list of topics
-  * made by the specified client.
-  * @param handle A valid client handle from a successful call to 
-  * MQTTClient_create(). 
-  * @param count The number subscriptions to be removed.
-  * @param topic An array (of length <i>count</i>) of pointers to the topics of
-  * the subscriptions to be removed, each of which may include wildcards.
-  * @return ::MQTTCLIENT_SUCCESS if the subscriptions are removed. 
-  * An error code is returned if there was a problem removing the subscriptions.
-  */
-DLLExport int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char** topic);
-
-/** 
-  * This function attempts to publish a message to a given topic (see also
-  * MQTTClient_publishMessage()). An ::MQTTClient_deliveryToken is issued when 
-  * this function returns successfully. If the client application needs to 
-  * test for succesful delivery of QoS1 and QoS2 messages, this can be done 
-  * either asynchronously or synchronously (see @ref async, 
-  * ::MQTTClient_waitForCompletion and MQTTClient_deliveryComplete()).
-  * @param handle A valid client handle from a successful call to 
-  * MQTTClient_create(). 
-  * @param topicName The topic associated with this message.
-  * @param payloadlen The length of the payload in bytes.
-  * @param payload A pointer to the byte array payload of the message.
-  * @param qos The @ref qos of the message.
-  * @param retained The retained flag for the message.
-  * @param dt A pointer to an ::MQTTClient_deliveryToken. This is populated
-  * with a token representing the message when the function returns 
-  * successfully. If your application does not use delivery tokens, set this 
-  * argument to NULL.
-  * @return ::MQTTCLIENT_SUCCESS if the message is accepted for publication. 
-  * An error code is returned if there was a problem accepting the message.
-  */
 DLLExport int MQTTClient_publish(MQTTClient handle, char* topicName, int data_len, void* data);
 
-//DLLExport int MQTTClient_publish(MQTTClient handle, char* topicName, cJson);
-
-
-DLLExport int MQTTClient_dopublish(MQTTClient handle, char* topicName, int payloadlen, void* payload, int qos, int retained,
-																 MQTTClient_deliveryToken* dt);
-
+DLLExport int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data);
 
 DLLExport int MQTTClient_report(MQTTClient handle, char* action, char *data);
 
@@ -796,72 +638,11 @@ DLLExport int MQTTClient_get_topic(MQTTClient handle, char* parameter);
 DLLExport int MQTTClient_get_status(MQTTClient handle, char* parameter);
 
 DLLExport int MQTTClient_set_broker(MQTTClient *handle, char* broker);
+
 DLLExport int MQTTClient_get_broker(MQTTClient *handle, char* broker);
 
-
-
-DLLExport int MQTTClient_get(MQTTClient handle, EXTED_CMD cmd, int parameter_len, void* parameter,
-							 int qos, int retained, MQTTClient_deliveryToken* deliveryToken);
-
-/** 
-  * This function attempts to publish a message to a given topic (see also
-  * MQTTClient_publish()). An ::MQTTClient_deliveryToken is issued when 
-  * this function returns successfully. If the client application needs to 
-  * test for succesful delivery of QoS1 and QoS2 messages, this can be done 
-  * either asynchronously or synchronously (see @ref async, 
-  * ::MQTTClient_waitForCompletion and MQTTClient_deliveryComplete()).
-  * @param handle A valid client handle from a successful call to 
-  * MQTTClient_create(). 
-  * @param topicName The topic associated with this message.
-  * @param msg A pointer to a valid MQTTClient_message structure containing 
-  * the payload and attributes of the message to be published.
-  * @param dt A pointer to an ::MQTTClient_deliveryToken. This is populated
-  * with a token representing the message when the function returns 
-  * successfully. If your application does not use delivery tokens, set this 
-  * argument to NULL.
-  * @return ::MQTTCLIENT_SUCCESS if the message is accepted for publication. 
-  * An error code is returned if there was a problem accepting the message.
-  */
-DLLExport int MQTTClient_publishMessage(MQTTClient handle, char* topicName, MQTTClient_message* msg, MQTTClient_deliveryToken* dt);
-
-
-/**
-  * This function is called by the client application to synchronize execution
-  * of the main thread with completed publication of a message. When called,
-  * MQTTClient_waitForCompletion() blocks execution until the message has been
-  * successful delivered or the specified timeout has expired. See @ref async.
-  * @param handle A valid client handle from a successful call to 
-  * MQTTClient_create(). 
-  * @param dt The ::MQTTClient_deliveryToken that represents the message being
-  * tested for successful delivery. Delivery tokens are issued by the 
-  * publishing functions MQTTClient_publish() and MQTTClient_publishMessage().
-  * @param timeout The maximum time to wait in milliseconds.
-  * @return ::MQTTCLIENT_SUCCESS if the message was successfully delivered. 
-  * An error code is returned if the timeout expires or there was a problem 
-  * checking the token.
-  */
 DLLExport int MQTTClient_waitForCompletion(MQTTClient handle, MQTTClient_deliveryToken dt, unsigned long timeout);
 
-
-/**
-  * This function sets a pointer to an array of delivery tokens for 
-  * messages that are currently in-flight (pending completion). 
-  *
-  * <b>Important note:</b> The memory used to hold the array of tokens is 
-  * malloc()'d in this function. The client application is responsible for 
-  * freeing this memory when it is no longer required.
-  * @param handle A valid client handle from a successful call to 
-  * MQTTClient_create(). 
-  * @param tokens The address of a pointer to an ::MQTTClient_deliveryToken. 
-  * When the function returns successfully, the pointer is set to point to an 
-  * array of tokens representing messages pending completion. The last member of
-  * the array is set to -1 to indicate there are no more tokens. If no tokens
-  * are pending, the pointer is set to NULL.
-  * @return ::MQTTCLIENT_SUCCESS if the function returns successfully.
-  * An error code is returned if there was a problem obtaining the list of
-  * pending tokens.
-  */
-DLLExport int MQTTClient_getPendingDeliveryTokens(MQTTClient handle, MQTTClient_deliveryToken **tokens);
 
 /**
   * When implementing a single-threaded client, call this function periodically
@@ -937,416 +718,3 @@ DLLExport void MQTTClient_free(void* ptr);
 DLLExport void MQTTClient_destroy(MQTTClient* handle);
 
 #endif
-
-/**
-  * @cond MQTTClient_main
-  * @page async Asynchronous vs synchronous client applications
-  * The client library supports two modes of operation. These are referred to
-  * as <b>synchronous</b> and <b>asynchronous</b> modes. If your application
-  * calls MQTTClient_setCallbacks(), this puts the client into asynchronous
-  * mode, otherwise it operates in synchronous mode.
-  *
-  * In synchronous mode, the client application runs on a single thread. 
-  * Messages are published using the MQTTClient_publish() and 
-  * MQTTClient_publishMessage() functions. To determine that a QoS1 or QoS2
-  * (see @ref qos) message has been successfully delivered, the application
-  * must call the MQTTClient_waitForCompletion() function. An example showing
-  * synchronous publication is shown in @ref pubsync. Receiving messages in 
-  * synchronous mode uses the MQTTClient_receive() function. Client applicaitons
-  * must call either MQTTClient_receive() or MQTTClient_yield() relatively 
-  * frequently in order to allow processing of acknowledgements and the MQTT
-  * "pings" that keep the network connection to the server alive.
-  * 
-  * In asynchronous mode, the client application runs on several threads. The
-  * main program calls functions in the client library to publish and subscribe,
-  * just as for the synchronous mode. Processing of handshaking and maintaining
-  * the network connection is performed in the background, however.
-  * Notifications of status and message reception are provided to the client
-  * application using callbacks registered with the library by the call to
-  * MQTTClient_setCallbacks() (see MQTTClient_messageArrived(), 
-  * MQTTClient_connectionLost() and MQTTClient_deliveryComplete()).
-  *
-  * @page wildcard Subscription wildcards
-  * Every MQTT message includes a topic that classifies it. MQTT servers use 
-  * topics to determine which subscribers should receive messages published to
-  * the server.
-  * 
-  * Consider the server receiving messages from several environmental sensors. 
-  * Each sensor publishes its measurement data as a message with an associated
-  * topic. Subscribing applications need to know which sensor originally 
-  * published each received message. A unique topic is thus used to identify 
-  * each sensor and measurement type. Topics such as SENSOR1TEMP, 
-  * SENSOR1HUMIDITY, SENSOR2TEMP and so on achieve this but are not very 
-  * flexible. If additional sensors are added to the system at a later date, 
-  * subscribing applications must be modified to receive them. 
-  *
-  * To provide more flexibility, MQTT supports a hierarchical topic namespace. 
-  * This allows application designers to organize topics to simplify their 
-  * management. Levels in the hierarchy are delimited by the '/' character, 
-  * such as SENSOR/1/HUMIDITY. Publishers and subscribers use these 
-  * hierarchical topics as already described.
-  *
-  * For subscriptions, two wildcard characters are supported:
-  * <ul>
-  * <li>A '#' character represents a complete sub-tree of the hierarchy and 
-  * thus must be the last character in a subscription topic string, such as 
-  * SENSOR/#. This will match any topic starting with SENSOR/, such as 
-  * SENSOR/1/TEMP and SENSOR/2/HUMIDITY.</li>
-  * <li> A '+' character represents a single level of the hierarchy and is 
-  * used between delimiters. For example, SENSOR/+/TEMP will match 
-  * SENSOR/1/TEMP and SENSOR/2/TEMP.</li>
-  * </ul>
-  * Publishers are not allowed to use the wildcard characters in their topic 
-  * names.
-  *
-  * Deciding on your topic hierarchy is an important step in your system design.
-  *
-  * @page qos Quality of service
-  * The MQTT protocol provides three qualities of service for delivering 
-  * messages between clients and servers: "at most once", "at least once" and 
-  * "exactly once". 
-  *
-  * Quality of service (QoS) is an attribute of an individual message being 
-  * published. An application sets the QoS for a specific message by setting the
-  * MQTTClient_message.qos field to the required value.
-  *
-  * A subscribing client can set the maximum quality of service a server uses
-  * to send messages that match the client subscriptions. The 
-  * MQTTClient_subscribe() and MQTTClient_subscribeMany() functions set this 
-  * maximum. The QoS of a message forwarded to a subscriber thus might be 
-  * different to the QoS given to the message by the original publisher. 
-  * The lower of the two values is used to forward a message.
-  *
-  * The three levels are:
-  *
-  * <b>QoS0, At most once:</b> The message is delivered at most once, or it 
-  * may not be delivered at all. Its delivery across the network is not 
-  * acknowledged. The message is not stored. The message could be lost if the 
-  * client is disconnected, or if the server fails. QoS0 is the fastest mode of 
-  * transfer. It is sometimes called "fire and forget".
-  *
-  * The MQTT protocol does not require servers to forward publications at QoS0 
-  * to a client. If the client is disconnected at the time the server receives
-  * the publication, the publication might be discarded, depending on the 
-  * server implementation.
-  * 
-  * <b>QoS1, At least once:</b> The message is always delivered at least once. 
-  * It might be delivered multiple times if there is a failure before an 
-  * acknowledgment is received by the sender. The message must be stored 
-  * locally at the sender, until the sender receives confirmation that the 
-  * message has been published by the receiver. The message is stored in case 
-  * the message must be sent again.
-  * 
-  * <b>QoS2, Exactly once:</b> The message is always delivered exactly once. 
-  * The message must be stored locally at the sender, until the sender receives
-  * confirmation that the message has been published by the receiver. The 
-  * message is stored in case the message must be sent again. QoS2 is the 
-  * safest, but slowest mode of transfer. A more sophisticated handshaking 
-  * and acknowledgement sequence is used than for QoS1 to ensure no duplication
-  * of messages occurs.
-  * @page pubsync Synchronous publication example
-@code
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "MQTTClient.h"
-
-#define ADDRESS     "tcp://localhost:1883"
-#define CLIENTID    "ExampleClientPub"
-#define TOPIC       "MQTT Examples"
-#define PAYLOAD     "Hello World!"
-#define QOS         1
-#define TIMEOUT     10000L
-
-int main(int argc, char* argv[])
-{
-    MQTTClient client;
-    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-    MQTTClient_message pubmsg = MQTTClient_message_initializer;
-    MQTTClient_deliveryToken token;
-    int rc;
-
-    MQTTClient_create(&client, ADDRESS, CLIENTID,
-        MQTTCLIENT_PERSISTENCE_NONE, NULL);
-    conn_opts.keepAliveInterval = 300;
-    conn_opts.cleansession = 1;
-
-    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
-    {
-        printf("Failed to connect, return code %d\n", rc);
-        exit(-1);
-    }
-    pubmsg.payload = PAYLOAD;
-    pubmsg.payloadlen = strlen(PAYLOAD);
-    pubmsg.qos = QOS;
-    pubmsg.retained = 0;
-    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
-    printf("Waiting for up to %d seconds for publication of %s\n"
-            "on topic %s for client with ClientID: %s\n",
-            (int)(TIMEOUT/1000), PAYLOAD, TOPIC, CLIENTID);
-    rc = MQTTClient_waitForCompletion(client, token, TIMEOUT);
-    printf("Message with delivery token %d delivered\n", token);
-    MQTTClient_disconnect(client, 10000);
-    MQTTClient_destroy(&client);
-    return rc;
-}
-
-  * @endcode
-  *
-  * @page pubasync Asynchronous publication example
-@code{.c}
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "MQTTClient.h"
-
-#define ADDRESS     "tcp://localhost:1883"
-#define CLIENTID    "ExampleClientPub"
-#define TOPIC       "MQTT Examples"
-#define PAYLOAD     "Hello World!"
-#define QOS         1
-#define TIMEOUT     10000L
-
-volatile MQTTClient_deliveryToken deliveredtoken;
-
-void delivered(void *context, MQTTClient_deliveryToken dt)
-{
-    printf("Message with token value %d delivery confirmed\n", dt);
-    deliveredtoken = dt;
-}
-
-int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message)
-{
-    int i;
-    char* payloadptr;
-
-    printf("Message arrived\n");
-    printf("     topic: %s\n", topicName);
-    printf("   message: ");
-
-    payloadptr = message->payload;
-    for(i=0; i<message->payloadlen; i++)
-    {
-        putchar(*payloadptr++);
-    }
-    putchar('\n');
-    MQTTClient_freeMessage(&message);
-    MQTTClient_free(topicName);
-    return 1;
-}
-
-void connlost(void *context, char *cause)
-{
-    printf("\nConnection lost\n");
-    printf("     cause: %s\n", cause);
-}
-
-int main(int argc, char* argv[])
-{
-    MQTTClient client;
-    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-    MQTTClient_message pubmsg = MQTTClient_message_initializer;
-    MQTTClient_deliveryToken token;
-    int rc;
-
-    MQTTClient_create(&client, ADDRESS, CLIENTID,
-        MQTTCLIENT_PERSISTENCE_NONE, NULL);
-    conn_opts.keepAliveInterval = 300;
-    conn_opts.cleansession = 1;
-
-    MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
-
-    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
-    {
-        printf("Failed to connect, return code %d\n", rc);
-        exit(-1);	
-    }
-    pubmsg.payload = PAYLOAD;
-    pubmsg.payloadlen = strlen(PAYLOAD);
-    pubmsg.qos = QOS;
-    pubmsg.retained = 0;
-    deliveredtoken = 0;
-    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
-    printf("Waiting for publication of %s\n"
-            "on topic %s for client with ClientID: %s\n",
-            PAYLOAD, TOPIC, CLIENTID);
-    while(deliveredtoken != token);
-    MQTTClient_disconnect(client, 10000);
-    MQTTClient_destroy(&client);
-    return rc;
-}
-  
-  * @endcode
-  * @page subasync Asynchronous subscription example
-@code
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "MQTTClient.h"
-
-#define ADDRESS     "tcp://localhost:1883"
-#define CLIENTID    "ExampleClientSub"
-#define TOPIC       "MQTT Examples"
-#define PAYLOAD     "Hello World!"
-#define QOS         1
-#define TIMEOUT     10000L
-
-volatile MQTTClient_deliveryToken deliveredtoken;
-
-void delivered(void *context, MQTTClient_deliveryToken dt)
-{
-    printf("Message with token value %d delivery confirmed\n", dt);
-    deliveredtoken = dt;
-}
-
-int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message)
-{
-    int i;
-    char* payloadptr;
-
-    printf("Message arrived\n");
-    printf("     topic: %s\n", topicName);
-    printf("   message: ");
-
-    payloadptr = message->payload;
-    for(i=0; i<message->payloadlen; i++)
-    {
-        putchar(*payloadptr++);
-    }
-    putchar('\n');
-    MQTTClient_freeMessage(&message);
-    MQTTClient_free(topicName);
-    return 1;
-}
-
-void connlost(void *context, char *cause)
-{
-    printf("\nConnection lost\n");
-    printf("     cause: %s\n", cause);
-}
-
-int main(int argc, char* argv[])
-{
-    MQTTClient client;
-    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-    int rc;
-    int ch;
-
-    MQTTClient_create(&client, ADDRESS, CLIENTID,
-        MQTTCLIENT_PERSISTENCE_NONE, NULL);
-    conn_opts.keepAliveInterval = 300;
-    conn_opts.cleansession = 1;
-
-    MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
-
-    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
-    {
-        printf("Failed to connect, return code %d\n", rc);
-        exit(-1);	
-    }
-    printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
-           "Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
-    MQTTClient_subscribe(client, TOPIC, QOS);
-
-    do 
-    {
-        ch = getchar();
-    } while(ch!='Q' && ch != 'q');
-
-    MQTTClient_disconnect(client, 10000);
-    MQTTClient_destroy(&client);
-    return rc;
-}
-              
-  * @endcode
-  * @page tracing Tracing
-  * 
-  * Runtime tracing is controlled by environment variables.
-  *
-  * Tracing is switched on by setting MQTT_C_CLIENT_TRACE.  A value of ON, or stdout, prints to
-  * stdout, any other value is interpreted as a file name to use.
-  *
-  * The amount of trace detail is controlled with the MQTT_C_CLIENT_TRACE_LEVEL environment
-  * variable - valid values are ERROR, PROTOCOL, MINIMUM, MEDIUM and MAXIMUM
-  * (from least to most verbose).
-  *
-  * The variable MQTT_C_CLIENT_TRACE_MAX_LINES limits the number of lines of trace that are output
-  * to a file.  Two files are used at most, when they are full, the last one is overwritten with the
-  * new trace entries.  The default size is 1000 lines.
-  *
-  * ### MQTT Packet Tracing
-  * 
-  * A feature that can be very useful is printing the MQTT packets that are sent and received.  To 
-  * achieve this, use the following environment variable settings:
-  * @code
-    MQTT_C_CLIENT_TRACE=ON
-    MQTT_C_CLIENT_TRACE_LEVEL=PROTOCOL
-  * @endcode
-  * The output you should see looks like this:
-  * @code
-    20130528 155936.813 3 stdout-subscriber -> CONNECT cleansession: 1 (0)
-    20130528 155936.813 3 stdout-subscriber <- CONNACK rc: 0
-    20130528 155936.813 3 stdout-subscriber -> SUBSCRIBE msgid: 1 (0)
-    20130528 155936.813 3 stdout-subscriber <- SUBACK msgid: 1
-    20130528 155941.818 3 stdout-subscriber -> DISCONNECT (0)
-  * @endcode
-  * where the fields are:
-  * 1. date
-  * 2. time
-  * 3. socket number
-  * 4. client id
-  * 5. direction (-> from client to server, <- from server to client)
-  * 6. packet details
-  *
-  * ### Default Level Tracing
-  * 
-  * This is an extract of a default level trace of a call to connect:
-  * @code
-    19700101 010000.000 (1152206656) (0)> MQTTClient_connect:893
-    19700101 010000.000 (1152206656)  (1)> MQTTClient_connectURI:716
-    20130528 160447.479 Connecting to serverURI localhost:1883
-    20130528 160447.479 (1152206656)   (2)> MQTTProtocol_connect:98
-    20130528 160447.479 (1152206656)    (3)> MQTTProtocol_addressPort:48
-    20130528 160447.479 (1152206656)    (3)< MQTTProtocol_addressPort:73
-    20130528 160447.479 (1152206656)    (3)> Socket_new:599
-    20130528 160447.479 New socket 4 for localhost, port 1883
-    20130528 160447.479 (1152206656)     (4)> Socket_addSocket:163
-    20130528 160447.479 (1152206656)      (5)> Socket_setnonblocking:73
-    20130528 160447.479 (1152206656)      (5)< Socket_setnonblocking:78 (0)
-    20130528 160447.479 (1152206656)     (4)< Socket_addSocket:176 (0)
-    20130528 160447.479 (1152206656)     (4)> Socket_error:95
-    20130528 160447.479 (1152206656)     (4)< Socket_error:104 (115)
-    20130528 160447.479 Connect pending
-    20130528 160447.479 (1152206656)    (3)< Socket_new:683 (115)
-    20130528 160447.479 (1152206656)   (2)< MQTTProtocol_connect:131 (115)
-  * @endcode
-  * where the fields are:
-  * 1. date
-  * 2. time
-  * 3. thread id
-  * 4. function nesting level
-  * 5. function entry (>) or exit (<)
-  * 6. function name : line of source code file
-  * 7. return value (if there is one)
-  *
-  * ### Memory Allocation Tracing
-  * 
-  * Setting the trace level to maximum causes memory allocations and frees to be traced along with 
-  * the default trace entries, with messages like the following:
-  * @code
-    20130528 161819.657 Allocating 16 bytes in heap at file /home/icraggs/workspaces/mqrtc/mqttv3c/src/MQTTPacket.c line 177 ptr 0x179f930
-
-    20130528 161819.657 Freeing 16 bytes in heap at file /home/icraggs/workspaces/mqrtc/mqttv3c/src/MQTTPacket.c line 201, heap use now 896 bytes
-  * @endcode
-  * When the last MQTT client object is destroyed, if the trace is being recorded 
-  * and all memory allocated by the client library has not been freed, an error message will be
-  * written to the trace.  This can help with fixing memory leaks.  The message will look like this:
-  * @code
-    20130528 163909.208 Some memory not freed at shutdown, possible memory leak
-    20130528 163909.208 Heap scan start, total 880 bytes
-    20130528 163909.208 Heap element size 32, line 354, file /home/icraggs/workspaces/mqrtc/mqttv3c/src/MQTTPacket.c, ptr 0x260cb00
-    20130528 163909.208   Content           
-    20130528 163909.209 Heap scan end
-  * @endcode
-  * @endcond
-  */

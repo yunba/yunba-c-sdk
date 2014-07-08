@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 	int ret = MQTTClient_set_alias(client, "000000018302");
 	(ret == 0)? printf("set alias OK\n") : printf("set alias fail\n");
 
-	rc = MQTTClient_subscribe(client, topic, opts.qos);
+	rc = MQTTClient_subscribe(client, topic);
 
 	while (!toStop)
 	{
@@ -183,7 +183,8 @@ int main(int argc, char** argv)
 	
 	printf("Stopping\n");
 
-	MQTTClient_disconnect(client, 0);
+	ret = MQTTClient_disconnect(client, 0);
+	printf("%i\n", ret);
 
  	MQTTClient_destroy(&client);
 

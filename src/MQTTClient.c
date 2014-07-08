@@ -35,7 +35,8 @@
 	#include <sys/time.h>
 #endif
 
-#include "MQTTClient.h"
+//#include "MQTTClient.h"
+#include "yunba.h"
 #if !defined(NO_PERSISTENCE)
 #include "MQTTPersistence.h"
 #endif
@@ -58,6 +59,9 @@
 
 #define BUILD_TIMESTAMP "##MQTTCLIENT_BUILD_TAG##"
 #define CLIENT_VERSION  "##MQTTCLIENT_VERSION_TAG##"
+
+#define DEFAULT_QOS 1
+#define DEFAULT_RETAINED 0
 
 char* client_timestamp_eye = "MQTTClientV3_Timestamp " BUILD_TIMESTAMP;
 char* client_version_eye = "MQTTClientV3_Version " CLIENT_VERSION;
@@ -278,6 +282,8 @@ int MQTTClient_create(MQTTClient* handle, char* serverURI, char* clientId,
 #endif
 	m->serverURI = malloc(strlen(serverURI)+1);
 	strcpy(m->serverURI, serverURI);
+
+	printf("%s,%s\n", __func__, m->serverURI);
 	ListAppend(handles, m, sizeof(MQTTClients));
 
 	m->c = malloc(sizeof(Clients));
@@ -1244,10 +1250,10 @@ exit:
 }
 
 
-int MQTTClient_subscribe(MQTTClient handle, char* topic, int qos)
+int MQTTClient_subscribe(MQTTClient handle, char* topic)
 {
 	int rc = 0;
-
+	int qos = DEFAULT_QOS;
 	FUNC_ENTRY;
 	rc = MQTTClient_subscribeMany(handle, 1, &topic, &qos);
 	FUNC_EXIT_RC(rc);
@@ -1255,11 +1261,24 @@ int MQTTClient_subscribe(MQTTClient handle, char* topic, int qos)
 }
 
 
+int MQTTClient_dosubscribe(MQTTClient handle, char* topic, int qos)
+{
+        int rc = 0;
+
+        FUNC_ENTRY;
+        rc = MQTTClient_subscribeMany(handle, 1, &topic, &qos);
+        FUNC_EXIT_RC(rc);
+        return rc;
+}
+
+
+
+
 int MQTTClient_presence(MQTTClient handle, char* topic)
 {
 	char temp[100];
 	sprintf(temp, "%s/p", topic);
-	return MQTTClient_subscribe(handle, temp, 0);
+	return MQTTClient_subscribe(handle, temp);
 }
 
 
@@ -1348,7 +1367,7 @@ int MQTTClient_unpresence(MQTTClient handle, char* topic)
 
 
 
-int MQTTClient_publish(MQTTClient handle, char* topicName, int payloadlen, void* payload,
+int MQTTClient_dopublish(MQTTClient handle, char* topicName, int payloadlen, void* payload,
 							 int qos, int retained, MQTTClient_deliveryToken* deliveryToken)
 {
 	int rc = MQTTCLIENT_SUCCESS;
@@ -1435,6 +1454,31 @@ exit:
 	return rc;
 }
 
+int MQTTClient_publish(MQTTClient handle, char* topicName, int payloadlen, void* payload)
+{
+	int qos = DEFAULT_QOS;
+	int retained = DEFAULT_RETAINED;
+	return MQTTClient_dopublish(handle, topicName, payloadlen, payload, qos, retained, NULL);
+}
+
+
+int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data)
+{
+	int ret = MQTTCLIENT_FAILURE;
+	int qos = DEFAULT_QOS;
+	int retained = DEFAULT_RETAINED;
+	char *payload = cJSON_PrintUnformatted(data);
+
+	if (payload != NULL) {
+		int payloadlen = strlen(payload);
+		ret = MQTTClient_dopublish(handle, topicName, payloadlen, payload, qos, retained, NULL);
+
+		free(payload);
+	}
+
+	return ret;
+}
+
 
 
 int MQTTClient_publishMessage(MQTTClient handle, char* topicName, MQTTClient_message* message,
@@ -1455,7 +1499,7 @@ int MQTTClient_publishMessage(MQTTClient handle, char* topicName, MQTTClient_mes
 		goto exit;
 	}
 
-	rc = MQTTClient_publish(handle, topicName, message->payloadlen, message->payload,
+	rc = MQTTClient_dopublish(handle, topicName, message->payloadlen, message->payload,
 								message->qos, message->retained, deliveryToken);
 exit:
 	FUNC_EXIT_RC(rc);
@@ -1547,13 +1591,19 @@ exit:
 	return rc;
 }
 
+DLLExport int MQTTClient_report(MQTTClient handle, char* action, char *data)
+{
+	char topic_name[100];
+	sprintf(topic_name, "$$report/%s", action);
 
+	return MQTTClient_dopublish(handle, topic_name, strlen(data), data, 0, DEFAULT_RETAINED, NULL);
+}
 
 
 int MQTTClient_set_alias(MQTTClient handle, char* alias)
 {
 	const char *topic_name=",yali";
-	return MQTTClient_publish(handle, topic_name, strlen(alias), alias, 2, 0, NULL);
+	return MQTTClient_dopublish(handle, topic_name, strlen(alias), alias, DEFAULT_QOS, DEFAULT_RETAINED, NULL);
 }
 
 
@@ -1582,6 +1632,68 @@ int MQTTClient_get_status(MQTTClient handle, char* parameter)
 {
 	return MQTTClient_get(handle, GET_STATUS, strlen(parameter), parameter, 1, 0, NULL);
 }
+
+int MQTTClient_set_broker(MQTTClient *handle, char* broker)
+{
+	int rc = 0;
+	MQTTClients* m = *handle;
+	char *p = NULL;
+	char buf[100];
+	FUNC_ENTRY;
+	rc = Thread_lock_mutex(mqttclient_mutex);
+
+	if (broker == NULL) {
+		rc = MQTTCLIENT_NULL_PARAMETER;
+		goto exit;
+	}
+
+	p = strtok(m->serverURI, ":");
+	if (p != NULL) {
+		p = strtok(NULL,":");
+		if (p != NULL) {
+			if (m->serverURI)
+				free(m->serverURI);
+
+			sprintf(buf, "%s:%s", broker, p);
+			rc = MQTTCLIENT_SUCCESS;
+			m->serverURI = malloc(strlen(buf)+1);
+			strcpy(m->serverURI, buf);
+		}
+	}
+
+exit:
+	Thread_unlock_mutex(mqttclient_mutex);
+	FUNC_EXIT_RC(rc);
+	return rc;
+}
+
+int MQTTClient_get_broker(MQTTClient *handle, char* broker)
+{
+	int rc = 0;
+	MQTTClients* m = *handle;
+	char *p = NULL;
+	char buf[100];
+	FUNC_ENTRY;
+	rc = Thread_lock_mutex(mqttclient_mutex);
+
+	strcpy(buf, m->serverURI);
+	if (broker == NULL) {
+		rc = MQTTCLIENT_NULL_PARAMETER;
+		goto exit;
+	}
+
+	p = strtok(buf, ":");
+	if (p != NULL) {
+		strcpy(broker, p);
+		rc = MQTTCLIENT_SUCCESS;
+	}
+
+exit:
+	Thread_unlock_mutex(mqttclient_mutex);
+	FUNC_EXIT_RC(rc);
+	return rc;
+}
+
 
 
 void MQTTClient_retry(void)
@@ -1856,7 +1968,8 @@ int get_present_info(char *topicName, MQTTClient_message* m, Presence_msg *prese
 		cJSON *root = cJSON_Parse((char *)m->payload);
 		if (root != NULL) {
 			strcpy(presence_status->action, cJSON_GetObjectItem(root,"action")->valuestring);
-			strcpy(presence_status->alias, cJSON_GetObjectItem(root,"alias")->valuestring);\
+			strcpy(presence_status->alias, cJSON_GetObjectItem(root,"alias")->valuestring);
+			cJSON_Delete(root);
 			return 0;
 		}
 	}
@@ -1994,6 +2107,7 @@ exit:
 
 MQTTClient_nameValue* MQTTClient_getVersionInfo()
 {
+#if 0
 	#define MAX_INFO_STRINGS 8
 	static MQTTClient_nameValue libinfo[MAX_INFO_STRINGS + 1];
 	int i = 0;
@@ -2025,6 +2139,14 @@ MQTTClient_nameValue* MQTTClient_getVersionInfo()
 	libinfo[i].name = NULL;
 	libinfo[i].value = NULL;
 	return libinfo;
+#else
+	static MQTTClient_nameValue libinfo;
+
+	libinfo.name = "Yunba SDK";
+	libinfo.value = "v1.0.0";
+	return &libinfo;
+
+#endif
 }
 
 
