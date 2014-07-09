@@ -1379,7 +1379,7 @@ int MQTTClient_unpresence(MQTTClient handle, char* topic)
 {
 	char temp[100];
 	sprintf(temp, "%s/p", topic);
-	return MQTTClient_unsubscribe(handle, &temp);
+	return MQTTClient_unsubscribe(handle, temp);
 }
 
 
@@ -1567,7 +1567,7 @@ int MQTTClient_get(MQTTClient handle, EXTED_CMD cmd, int parameter_len, void* pa
 
 	p->ext_payload.ext_buf = parameter;
 	p->ext_payload.ext_cmd = cmd;
-	p->ext_payload.ext_buf_len = parameter;
+	p->ext_payload.ext_buf_len = parameter_len;
 	p->msgId = -1;
 
 	rc = MQTTProtocol_startGet(m->c, p, qos, retained, &msg);
@@ -1619,7 +1619,7 @@ DLLExport int MQTTClient_report(MQTTClient handle, char* action, char *data)
 
 int MQTTClient_set_alias(MQTTClient handle, char* alias)
 {
-	const char *topic_name=",yali";
+	char *topic_name=",yali";
 	return MQTTClient_dopublish(handle, topic_name, strlen(alias), alias, DEFAULT_QOS, DEFAULT_RETAINED, NULL);
 }
 

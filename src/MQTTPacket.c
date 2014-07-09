@@ -506,7 +506,7 @@ void* MQTTPacket_get(unsigned char aHeader, char* data, int datalen)
 {
 	Ext_ack* pack = malloc(sizeof(Ext_ack));
 	char* curdata = data;
-	char* enddata = &data[datalen];
+//	char* enddata = &data[datalen];
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
@@ -525,7 +525,7 @@ void* MQTTPacket_get(unsigned char aHeader, char* data, int datalen)
 	pack->ack_payload.len = readInt(&curdata);
 	pack->ack_payload.ret_string = curdata;
 
-exit:
+//exit:
 	FUNC_EXIT;
 	return pack;
 }
@@ -742,8 +742,8 @@ int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandle
 		char *ptr = buf;
 		char *cmd = &(pack->ext_payload.ext_cmd);
 
-		char* bufs[4] = {buf, cmd, parm_len, pack->ext_payload.ext_buf};
-		int lens[4] = {8, 1, 2, strlen(pack->ext_payload.ext_buf)};
+		char* bufs[4] = {buf, cmd, parm_len, (char *)pack->ext_payload.ext_buf};
+		int lens[4] = {8, 1, 2, strlen((char *)pack->ext_payload.ext_buf)};
 
 		writeInt64(&ptr, pack->msgId);
 		ptr = parm_len;
@@ -756,8 +756,8 @@ int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandle
 	{
 		char *cmd = &(pack->ext_payload.ext_cmd);
 		char *ptr = parm_len;
-		char* bufs[3] = {cmd, parm_len, pack->ext_payload.ext_buf};
-		int lens[3] = {1, 2, strlen(pack->ext_payload.ext_buf)};
+		char* bufs[3] = {cmd, parm_len, (char *)pack->ext_payload.ext_buf};
+		int lens[3] = {1, 2, strlen((char *)pack->ext_payload.ext_buf)};
 		writeInt(&ptr, lens[2]);
 		rc = MQTTPacket_sends(net, header, 3, bufs, lens);
 	}
