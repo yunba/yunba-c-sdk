@@ -612,6 +612,7 @@ DLLExport int MQTTClient_isConnected(MQTTClient handle);
   */
 DLLExport int MQTTClient_subscribe(MQTTClient handle, char* topic);
 
+DLLExport int MQTTClient_subscribe_many(MQTTClient handle, int count, char** topic);
 
 DLLExport int MQTTClient_presence(MQTTClient handle, char* topic);
 
@@ -620,6 +621,8 @@ DLLExport int MQTTClient_unpresence(MQTTClient handle, char* topic);
 DLLExport int get_present_info(char *topicName, MQTTClient_message* m, Presence_msg *presence_status);
 
 DLLExport int MQTTClient_unsubscribe(MQTTClient handle, char* topic);
+
+DLLExport int MQTTClient_unsubscribe_many(MQTTClient handle, int count, char** topic);
 
 DLLExport int MQTTClient_publish(MQTTClient handle, char* topicName, int data_len, void* data);
 

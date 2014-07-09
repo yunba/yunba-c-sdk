@@ -1249,6 +1249,18 @@ exit:
 	return rc;
 }
 
+int MQTTClient_subscribe_many(MQTTClient handle, int count, char** topic)
+{
+	int rc = 0;
+	int *qos = malloc(count * sizeof(int));
+	memset(qos, DEFAULT_QOS, count);
+	FUNC_ENTRY;
+	rc = MQTTClient_subscribeMany(handle, count, topic, qos);
+	FUNC_EXIT_RC(rc);
+	free(qos);
+	return rc;
+}
+
 
 int MQTTClient_subscribe(MQTTClient handle, char* topic)
 {
@@ -1344,6 +1356,11 @@ exit:
 	Thread_unlock_mutex(mqttclient_mutex);
 	FUNC_EXIT_RC(rc);
 	return rc;
+}
+
+int MQTTClient_unsubscribe_many(MQTTClient handle, int count, char** topic)
+{
+	return MQTTClient_unsubscribeMany(handle, count, topic);
 }
 
 
