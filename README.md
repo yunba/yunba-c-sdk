@@ -1,4 +1,10 @@
 <<<<<<< HEAD
+# 云巴 Yunba C SDK
+
+详细文档见：[http://yunba.io/docs/#yunba-c-快速入门](http://yunba.io/docs/#yunba-c-快速入门)
+
+_Yunba C SDK 基于开源项目改造，以下是原项目的文档_
+
 # Eclipse Paho MQTT C client
 
 
