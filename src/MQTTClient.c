@@ -283,7 +283,7 @@ int MQTTClient_create(MQTTClient* handle, char* serverURI, char* clientId,
 	m->serverURI = malloc(strlen(serverURI)+1);
 	strcpy(m->serverURI, serverURI);
 
-	printf("%s,%s\n", __func__, m->serverURI);
+//	printf("%s,%s\n", __func__, m->serverURI);
 	ListAppend(handles, m, sizeof(MQTTClients));
 
 	m->c = malloc(sizeof(Clients));
@@ -1249,6 +1249,18 @@ exit:
 	return rc;
 }
 
+int MQTTClient_subscribe_many(MQTTClient handle, int count, char** topic)
+{
+	int rc = 0;
+	int *qos = malloc(count * sizeof(int));
+	memset(qos, DEFAULT_QOS, count);
+	FUNC_ENTRY;
+	rc = MQTTClient_subscribeMany(handle, count, topic, qos);
+	FUNC_EXIT_RC(rc);
+	free(qos);
+	return rc;
+}
+
 
 int MQTTClient_subscribe(MQTTClient handle, char* topic)
 {
@@ -1346,6 +1358,11 @@ exit:
 	return rc;
 }
 
+int MQTTClient_unsubscribe_many(MQTTClient handle, int count, char** topic)
+{
+	return MQTTClient_unsubscribeMany(handle, count, topic);
+}
+
 
 int MQTTClient_unsubscribe(MQTTClient handle, char* topic)
 {
@@ -1362,7 +1379,7 @@ int MQTTClient_unpresence(MQTTClient handle, char* topic)
 {
 	char temp[100];
 	sprintf(temp, "%s/p", topic);
-	return MQTTClient_unsubscribe(handle, &temp);
+	return MQTTClient_unsubscribe(handle, temp);
 }
 
 
@@ -1462,6 +1479,16 @@ int MQTTClient_publish(MQTTClient handle, char* topicName, int payloadlen, void*
 }
 
 
+int MQTTClient_publish_to_alias(MQTTClient handle, char* alias, int payloadlen, void* payload)
+{
+	int qos = DEFAULT_QOS;
+	int retained = DEFAULT_RETAINED;
+	char buf[150];
+
+	sprintf(buf, ",yta/%s", alias);
+	return MQTTClient_dopublish(handle, buf, payloadlen, payload, qos, retained, NULL);
+}
+
 int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data)
 {
 	int ret = MQTTCLIENT_FAILURE;
@@ -1550,7 +1577,7 @@ int MQTTClient_get(MQTTClient handle, EXTED_CMD cmd, int parameter_len, void* pa
 
 	p->ext_payload.ext_buf = parameter;
 	p->ext_payload.ext_cmd = cmd;
-	p->ext_payload.ext_buf_len = parameter;
+	p->ext_payload.ext_buf_len = parameter_len;
 	p->msgId = -1;
 
 	rc = MQTTProtocol_startGet(m->c, p, qos, retained, &msg);
@@ -1602,7 +1629,7 @@ DLLExport int MQTTClient_report(MQTTClient handle, char* action, char *data)
 
 int MQTTClient_set_alias(MQTTClient handle, char* alias)
 {
-	const char *topic_name=",yali";
+	char *topic_name=",yali";
 	return MQTTClient_dopublish(handle, topic_name, strlen(alias), alias, DEFAULT_QOS, DEFAULT_RETAINED, NULL);
 }
 
