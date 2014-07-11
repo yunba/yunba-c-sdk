@@ -628,6 +628,8 @@ DLLExport int MQTTClient_publish(MQTTClient handle, char* topicName, int data_le
 
 DLLExport int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data);
 
+DLLExport int MQTTClient_publish_to_alias(MQTTClient handle, char* alias, int data_len, void* data);
+
 DLLExport int MQTTClient_report(MQTTClient handle, char* action, char *data);
 
 DLLExport int MQTTClient_set_alias(MQTTClient handle, char* alias);

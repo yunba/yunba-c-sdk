@@ -1479,6 +1479,16 @@ int MQTTClient_publish(MQTTClient handle, char* topicName, int payloadlen, void*
 }
 
 
+int MQTTClient_publish_to_alias(MQTTClient handle, char* alias, int payloadlen, void* payload)
+{
+	int qos = DEFAULT_QOS;
+	int retained = DEFAULT_RETAINED;
+	char buf[150];
+
+	sprintf(buf, ",yta/%s", alias);
+	return MQTTClient_dopublish(handle, buf, payloadlen, payload, qos, retained, NULL);
+}
+
 int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data)
 {
 	int ret = MQTTCLIENT_FAILURE;
