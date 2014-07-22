@@ -1203,6 +1203,7 @@ int MQTTClient_subscribeMany(MQTTClient handle, int count, char* const* topic, i
 	List* qoss = ListInitialize();
 	int i = 0;
 	int rc = MQTTCLIENT_FAILURE;
+	int msgid = 0;
 
 	FUNC_ENTRY;
 	Thread_lock_mutex(mqttclient_mutex);
@@ -1231,7 +1232,7 @@ int MQTTClient_subscribeMany(MQTTClient handle, int count, char* const* topic, i
 			goto exit;
 		}
 	}
-	if (MQTTProtocol_assignMsgId(m->c) == 0)
+	if ((msgid = MQTTProtocol_assignMsgId(m->c)) == 0)
 	{
 		rc = MQTTCLIENT_MAX_MESSAGES_INFLIGHT;
 		goto exit;
@@ -1243,7 +1244,7 @@ int MQTTClient_subscribeMany(MQTTClient handle, int count, char* const* topic, i
 		ListAppend(qoss, &qos[i], sizeof(int));
 	}
 
-	rc = MQTTProtocol_subscribe(m->c, topics, qoss);
+	rc = MQTTProtocol_subscribe(m->c, topics, qoss, msgid);
 	ListFreeNoContent(topics);
 	ListFreeNoContent(qoss);
 
@@ -1337,6 +1338,7 @@ int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char* const* topic)
 	List* topics = ListInitialize();
 	int i = 0;
 	int rc = SOCKET_ERROR;
+	int msgid = 0;
 
 	FUNC_ENTRY;
 	Thread_lock_mutex(mqttclient_mutex);
@@ -1359,7 +1361,7 @@ int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char* const* topic)
 			goto exit;
 		}
 	}
-	if (MQTTProtocol_assignMsgId(m->c) == 0)
+	if ((msgid = MQTTProtocol_assignMsgId(m->c)) == 0)
 	{
 		rc = MQTTCLIENT_MAX_MESSAGES_INFLIGHT;
 		goto exit;
@@ -1367,7 +1369,7 @@ int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char* const* topic)
 
 	for (i = 0; i < count; i++)
 		ListAppend(topics, topic[i], strlen(topic[i]));
-	rc = MQTTProtocol_unsubscribe(m->c, topics);
+	rc = MQTTProtocol_unsubscribe(m->c, topics, msgid);
 	ListFreeNoContent(topics);
 
 	if (rc == TCPSOCKET_COMPLETE)
@@ -1432,6 +1434,7 @@ int MQTTClient_publish(MQTTClient handle, const char* topicName, int payloadlen,
 	Messages* msg = NULL;
 	Publish* p = NULL;
 	int blocked = 0;
+	int msgid = 0;
 
 	FUNC_ENTRY;
 	Thread_lock_mutex(mqttclient_mutex);
@@ -1465,7 +1468,7 @@ int MQTTClient_publish(MQTTClient handle, const char* topicName, int payloadlen,
 	}
 	if (blocked == 1)
 		Log(TRACE_MIN, -1, "Resuming publish now queue not full for client %s", m->c->clientID);
-	if (MQTTProtocol_assignMsgId(m->c) == 0)
+	if (qos > 0 && (msgid = MQTTProtocol_assignMsgId(m->c)) == 0)
 	{	/* this should never happen as we've waited for spaces in the queue */
 		rc = MQTTCLIENT_MAX_MESSAGES_INFLIGHT;
 		goto exit;
@@ -1476,7 +1479,7 @@ int MQTTClient_publish(MQTTClient handle, const char* topicName, int payloadlen,
 	p->payload = payload;
 	p->payloadlen = payloadlen;
 	p->topic = (char*)topicName;
-	p->msgId = -1;
+	p->msgId = msgid;
 
 	rc = MQTTProtocol_startPublish(m->c, p, qos, retained, &msg);
 

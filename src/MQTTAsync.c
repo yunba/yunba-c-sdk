@@ -1037,7 +1037,7 @@ void MQTTAsync_processCommand()
 			ListAppend(topics, command->command.details.sub.topics[i], strlen(command->command.details.sub.topics[i]));
 			ListAppend(qoss, &command->command.details.sub.qoss[i], sizeof(int));
 		}
-		rc = MQTTProtocol_subscribe(command->client->c, topics, qoss);
+		rc = MQTTProtocol_subscribe(command->client->c, topics, qoss, command->command.token);
 		ListFreeNoContent(topics);
 		ListFreeNoContent(qoss);
 	}
@@ -1049,7 +1049,7 @@ void MQTTAsync_processCommand()
 		for (i = 0; i < command->command.details.unsub.count; i++)
 			ListAppend(topics, command->command.details.unsub.topics[i], strlen(command->command.details.unsub.topics[i]));
 			
-		rc = MQTTProtocol_unsubscribe(command->client->c, topics);
+		rc = MQTTProtocol_unsubscribe(command->client->c, topics, command->command.token);
 		ListFreeNoContent(topics);
 	}
 	else if (command->command.type == PUBLISH)
@@ -1062,7 +1062,7 @@ void MQTTAsync_processCommand()
 		p->payload = command->command.details.pub.payload;
 		p->payloadlen = command->command.details.pub.payloadlen;
 		p->topic = command->command.details.pub.destinationName;
-		p->msgId = -1;
+		p->msgId = command->command.token;
 
 		rc = MQTTProtocol_startPublish(command->client->c, p, command->command.details.pub.qos, command->command.details.pub.retained, &msg);
 		
@@ -2128,6 +2128,7 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, size_t count, char* const* topic, 
 	size_t i = 0;
 	int rc = MQTTASYNC_FAILURE;
 	MQTTAsync_queuedCommand* sub;
+	int msgid = 0;
 
 	FUNC_ENTRY;
 	if (m == NULL || m->c == NULL)
@@ -2138,11 +2139,6 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, size_t count, char* const* topic, 
 	if (m->c->connected == 0)
 	{
 		rc = MQTTASYNC_DISCONNECTED;
-		goto exit;
-	}
-	if (MQTTProtocol_assignMsgId(m->c) == 0)
-	{
-		rc = MQTTASYNC_NO_MORE_MSGIDS;
 		goto exit;
 	}
 	for (i = 0; i < count; i++)
@@ -2158,12 +2154,17 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, size_t count, char* const* topic, 
 			goto exit;
 		}
 	}
+	if ((msgid = MQTTProtocol_assignMsgId(m->c)) == 0)
+	{
+		rc = MQTTASYNC_NO_MORE_MSGIDS;
+		goto exit;
+	}
 
 	/* Add subscribe request to operation queue */
 	sub = malloc(sizeof(MQTTAsync_queuedCommand));
 	memset(sub, '\0', sizeof(MQTTAsync_queuedCommand));
 	sub->client = m;
-	sub->command.token = m->c->msgID;
+	sub->command.token = msgid;
 	if (response)
 	{
 		sub->command.onSuccess = response->onSuccess;
@@ -2205,6 +2206,7 @@ int MQTTAsync_unsubscribeMany(MQTTAsync handle, size_t count, char* const* topic
 	size_t i = 0;
 	int rc = SOCKET_ERROR;
 	MQTTAsync_queuedCommand* unsub;
+	int msgid = 0;
 
 	FUNC_ENTRY;
 	if (m == NULL || m->c == NULL)
@@ -2217,11 +2219,6 @@ int MQTTAsync_unsubscribeMany(MQTTAsync handle, size_t count, char* const* topic
 		rc = MQTTASYNC_DISCONNECTED;
 		goto exit;
 	}
-	if (MQTTProtocol_assignMsgId(m->c) == 0)
-	{
-		rc = MQTTASYNC_NO_MORE_MSGIDS;
-		goto exit;
-	}
 	for (i = 0; i < count; i++)
 	{
 		if (!UTF8_validateString(topic[i]))
@@ -2230,13 +2227,18 @@ int MQTTAsync_unsubscribeMany(MQTTAsync handle, size_t count, char* const* topic
 			goto exit;
 		}
 	}
+	if ((msgid = MQTTProtocol_assignMsgId(m->c)) == 0)
+	{
+		rc = MQTTASYNC_NO_MORE_MSGIDS;
+		goto exit;
+	}
 	
 	/* Add unsubscribe request to operation queue */
 	unsub = malloc(sizeof(MQTTAsync_queuedCommand));
 	memset(unsub, '\0', sizeof(MQTTAsync_queuedCommand));
 	unsub->client = m;
 	unsub->command.type = UNSUBSCRIBE;
-	unsub->command.token = m->c->msgID;
+	unsub->command.token = msgid;
 	if (response)
 	{
 		unsub->command.onSuccess = response->onSuccess;
@@ -2273,6 +2275,7 @@ int MQTTAsync_send(MQTTAsync handle, const char* destinationName, size_t payload
 	int rc = MQTTASYNC_SUCCESS;
 	MQTTAsyncs* m = handle;
 	MQTTAsync_queuedCommand* pub;
+	int msgid = 0;
 
 	FUNC_ENTRY;
 	if (m == NULL || m->c == NULL)
@@ -2283,7 +2286,7 @@ int MQTTAsync_send(MQTTAsync handle, const char* destinationName, size_t payload
 		rc = MQTTASYNC_BAD_UTF8_STRING;
 	else if (qos < 0 || qos > 2)
 		rc = MQTTASYNC_BAD_QOS;
-	else if (qos > 0 && MQTTProtocol_assignMsgId(m->c) == 0)
+	else if (qos > 0 && (msgid = MQTTProtocol_assignMsgId(m->c)) == 0)
 		rc = MQTTASYNC_NO_MORE_MSGIDS;
 
 	if (rc != MQTTASYNC_SUCCESS)
@@ -2294,7 +2297,7 @@ int MQTTAsync_send(MQTTAsync handle, const char* destinationName, size_t payload
 	memset(pub, '\0', sizeof(MQTTAsync_queuedCommand));
 	pub->client = m;
 	pub->command.type = PUBLISH;
-	pub->command.token = m->c->msgID;
+	pub->command.token = msgid;
 	if (response)
 	{
 		pub->command.onSuccess = response->onSuccess;
