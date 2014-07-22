@@ -655,6 +655,8 @@ DLLExport int MQTTClient_get_broker(MQTTClient *handle, char* broker);
 
 DLLExport int MQTTClient_setup_with_appkey(char* appkey, REG_info *info);
 
+DLLExport int MQTTClient_get_host(char *appkey, char* url);
+
 DLLExport int MQTTClient_waitForCompletion(MQTTClient handle, MQTTClient_deliveryToken dt, unsigned long timeout);
 
 

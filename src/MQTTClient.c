@@ -1783,6 +1783,63 @@ int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 	return ret;
 }
 
+static char url_host[200];
+static size_t get_url_cb(void *ptr, size_t size, size_t nmemb, void *userp)
+{
+	char buf[500];
+	memset(buf, 0, 500);
+	memcpy(buf, ptr, size * nmemb);
+
+	if (size * nmemb > 500) return -1;
+
+	cJSON *root = cJSON_Parse(buf);
+	if (root) {
+		strcpy(url_host, cJSON_GetObjectItem(root,"c")->valuestring);
+		cJSON_Delete(root);
+	}
+	return size * nmemb;
+}
+
+
+int MQTTClient_get_host(char *appkey, char* url)
+{
+	CURL *curl;
+	CURLcode res;
+	int ret = -1;
+
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	curl = curl_easy_init();
+	if (curl) {
+			char json_data[1024];
+			sprintf(json_data, "{\"a\":%s,\"n\":%s,\"v\":%s,\"o\":%s}",
+					appkey, /*${networktype}*/"1", "v1.0.0", /*${NetworkOperator}*/"1");
+			curl_easy_setopt(curl, CURLOPT_URL, "http://tick.yunba.io:9999");
+
+			struct curl_slist *headers = NULL;
+			headers = curl_slist_append(headers, "Accept: application/json");
+			headers = curl_slist_append(headers, "Content-Type: application/json");
+			headers = curl_slist_append(headers, "charsets: utf-8");
+
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
+
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, get_url_cb);
+			res = curl_easy_perform(curl);
+			if (res != CURLE_OK)
+					printf("get fail\n");
+			ret = (res == CURLE_OK)? 0 : -1;
+
+			strcpy(url, url_host);
+
+			curl_easy_cleanup(curl);
+
+			curl_global_cleanup();
+	}
+
+	return ret;
+}
+
 
 
 void MQTTClient_retry(void)

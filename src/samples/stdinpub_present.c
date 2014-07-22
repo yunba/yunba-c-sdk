@@ -62,15 +62,11 @@ void usage()
 {
 	printf("MQTT stdin publisher\n");
 	printf("Usage: stdinpub topicname <options>, where options are:\n");
-	printf("  --host <hostname> (default is localhost)\n");
-	printf("  --port <port> (default is 1883)\n");
 	printf("  --qos <qos> (default is 0)\n");
 	printf("  --retained (default is off)\n");
 	printf("  --delimiter <delim> (default is \\n)");
-	printf("  --clientid <clientid> (default is hostname+timestamp)");
 	printf("  --maxdatalen 100\n");
-	printf("  --username none\n");
-	printf("  --password none\n");
+	printf("  --appkey xxxxxxxxxxxxxxxx\n");
 	exit(-1);
 }
 
@@ -103,12 +99,12 @@ struct
 	char *appkey;
 //	char* username;
 //	char* password;
-	char* host;
-	char* port;
+//	char* host;
+//	char* port;
   int verbose;
 } opts =
 {
-	"\n", 100, 0, 0, NULL, "localhost", "1883", 0
+	"\n", 100, 0, 0, NULL, 0
 };
 
 Presence_msg my_present;
@@ -172,9 +168,9 @@ int main(int argc, char** argv)
 	
 	getopts(argc, argv);
 	
-	sprintf(url, "%s:%s", opts.host, opts.port);
+//	sprintf(url, "%s:%s", opts.host, opts.port);
 //  if (opts.verbose)
-		printf("URL is %s\n", url);
+//		printf("URL is %s\n", url);
 	
 	topic = argv[1];
 	printf("Using topic %s\n", topic);
@@ -186,6 +182,13 @@ int main(int argc, char** argv)
 	}
 
 	printf("Get reg info: client_id:%s,username:%s,password:%s\n", my_reg_info.client_id, my_reg_info.username, my_reg_info.password);
+
+	res = MQTTClient_get_host(opts.appkey, url);
+	if (res < 0) {
+		printf("can't get host info\n");
+		return 0;
+	}
+	printf("Get url info: %s\n", url);
 
 	rc = MQTTClient_create(&client, url, my_reg_info.client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
 	MQTTClient_get_broker(&client, broker);
@@ -291,6 +294,7 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+#if 0
 		else if (strcmp(argv[count], "--host") == 0)
 		{
 			if (++count < argc)
@@ -305,6 +309,7 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+#endif
 		else if (strcmp(argv[count], "--appkey") == 0)
 		{
 			if (++count < argc)
