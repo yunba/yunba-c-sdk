@@ -99,6 +99,9 @@ cd build/output/
 ## do publication in a new terminal as below
 ./samples/stdinpub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1
 
+## with appkey i.e:
+./stdinpub_present rocket --host ahz-front-1 --appkey 53ce5bd063eddece25e7bd81
+
 
 STDOUT_LOG:
 export MQTT_C_CLIENT_TRACE=stdout
