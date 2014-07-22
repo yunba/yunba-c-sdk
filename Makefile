@@ -111,7 +111,7 @@ MQTTVERSION_TARGET = ${blddir}/MQTTVersion
 CCFLAGS_SO = -ggdb -O0 -fPIC -Os -Wall -fvisibility=hidden
 FLAGS_EXE = -I ${srcdir} -lpthread -L ${blddir}
 
-LDFLAGS_C = -shared -Wl,-soname,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,MQTTClient_init -lpthread -lm
+LDFLAGS_C = -shared -Wl,-soname,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,MQTTClient_init -lpthread -lm -lcurl
 LDFLAGS_CS = -shared -Wl,-soname,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -lm -Wl,-no-whole-archive -Wl,-init,MQTTClient_init 
 LDFLAGS_A = -shared -Wl,-soname,lib${MQTTLIB_A}.so.${MAJOR_VERSION} -Wl,-init,MQTTAsync_init -lpthread -lm
 LDFLAGS_AS = -shared -Wl,-soname,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -lm -Wl,-no-whole-archive -Wl,-init,MQTTAsync_init 

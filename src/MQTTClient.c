@@ -41,7 +41,7 @@
 #include "MQTTPersistence.h"
 #endif
 
-
+#include <curl/curl.h>
 #include "utf-8.h"
 #include "MQTTProtocol.h"
 #include "MQTTProtocolOut.h"
@@ -1719,6 +1719,68 @@ exit:
 	Thread_unlock_mutex(mqttclient_mutex);
 	FUNC_EXIT_RC(rc);
 	return rc;
+}
+
+REG_info reg_info;
+
+static size_t reg_cb(void *ptr, size_t size, size_t nmemb, void *userp)
+{
+	char buf[500];
+	memset(buf, 0, 500);
+	memcpy(buf, ptr, size * nmemb);
+
+	if (size * nmemb > 500) return -1;
+
+	cJSON *root = cJSON_Parse(buf);
+	if (root) {
+		strcpy(reg_info.client_id, cJSON_GetObjectItem(root,"c")->valuestring);
+		strcpy(reg_info.username, cJSON_GetObjectItem(root,"u")->valuestring);
+		strcpy(reg_info.password, cJSON_GetObjectItem(root,"p")->valuestring);
+		cJSON_Delete(root);
+	}
+	return size * nmemb;
+}
+
+
+
+int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
+{
+	CURL *curl;
+	CURLcode res;
+	int ret = -1;
+
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	curl = curl_easy_init();
+	if (curl) {
+			char json_data[1024];
+			sprintf(json_data, "{\"a\": \"%s\", \"p\":2}", appkey);
+			curl_easy_setopt(curl, CURLOPT_URL, "http://reg.yunba.io:8383/device/reg/");
+
+			struct curl_slist *headers = NULL;
+			headers = curl_slist_append(headers, "Accept: application/json");
+			headers = curl_slist_append(headers, "Content-Type: application/json");
+			headers = curl_slist_append(headers, "charsets: utf-8");
+
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
+
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, reg_cb);
+			res = curl_easy_perform(curl);
+			if (res != CURLE_OK)
+					printf("get fail\n");
+			ret = (res == CURLE_OK)? 0 : -1;
+
+			strcpy(info->client_id, reg_info.client_id);
+			strcpy(info->username, reg_info.username);
+			strcpy(info->password, reg_info.password);
+
+			curl_easy_cleanup(curl);
+
+			curl_global_cleanup();
+	}
+
+	return ret;
 }
 
 

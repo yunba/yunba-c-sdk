@@ -34,8 +34,8 @@
 	--password none
  
 */
-
-#include "MQTTClient.h"
+#include "yunba.h"
+//#include "MQTTClient.h"
 #include "MQTTClientPersistence.h"
 
 #include <stdio.h>
@@ -50,6 +50,9 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #endif
+
+
+REG_info my_reg_info;
 
 
 volatile int toStop = 0;
@@ -92,19 +95,20 @@ void cfinish(int sig)
 
 struct
 {
-	char* clientid;
+//	char* clientid;
 	char* delimiter;
 	int maxdatalen;
 	int qos;
 	int retained;
-	char* username;
-	char* password;
+	char *appkey;
+//	char* username;
+//	char* password;
 	char* host;
 	char* port;
   int verbose;
 } opts =
 {
-	"publisher", "\n", 100, 0, 0, NULL, NULL, "localhost", "1883", 0
+	"\n", 100, 0, 0, NULL, "localhost", "1883", 0
 };
 
 Presence_msg my_present;
@@ -175,11 +179,19 @@ int main(int argc, char** argv)
 	topic = argv[1];
 	printf("Using topic %s\n", topic);
 
-	rc = MQTTClient_create(&client, url, opts.clientid, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+	int res = MQTTClient_setup_with_appkey(opts.appkey, &my_reg_info);
+	if (res < 0) {
+		printf("can't get reg info\n");
+		return 0;
+	}
+
+	printf("Get reg info: client_id:%s,username:%s,password:%s\n", my_reg_info.client_id, my_reg_info.username, my_reg_info.password);
+
+	rc = MQTTClient_create(&client, url, my_reg_info.client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
 	MQTTClient_get_broker(&client, broker);
 	printf("get broker:%s\n", broker);
 
-	MQTTClient_set_broker(&client, "localhost");
+//	MQTTClient_set_broker(&client, "localhost");
 
 	MQTTClient_get_broker(&client, broker);
 	printf("get broker:%s\n", broker);
@@ -194,8 +206,8 @@ int main(int argc, char** argv)
 	conn_opts.keepAliveInterval = 10000;
 	conn_opts.reliable = 0;
 	conn_opts.cleansession = 1;
-	conn_opts.username = opts.username;
-	conn_opts.password = opts.password;
+	conn_opts.username = my_reg_info.username;
+	conn_opts.password = my_reg_info.password;
 	
 	myconnect(&client, &conn_opts);
 
@@ -293,6 +305,14 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+		else if (strcmp(argv[count], "--appkey") == 0)
+		{
+			if (++count < argc)
+				opts.appkey = argv[count];
+			else
+				usage();
+		}
+/*
 		else if (strcmp(argv[count], "--clientid") == 0)
 		{
 			if (++count < argc)
@@ -314,6 +334,7 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+*/
 		else if (strcmp(argv[count], "--maxdatalen") == 0)
 		{
 			if (++count < argc)

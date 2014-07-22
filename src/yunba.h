@@ -103,6 +103,13 @@ typedef struct {
 } Presence_msg;
 
 
+typedef struct {
+	char client_id[200];
+	char username[200];
+	char password[200];
+} REG_info;
+
+
 /**
  * A handle representing an MQTT client. A valid client handle is available
  * following a successful call to MQTTClient_create().
@@ -645,6 +652,8 @@ DLLExport int MQTTClient_get_status(MQTTClient handle, char* parameter);
 DLLExport int MQTTClient_set_broker(MQTTClient *handle, char* broker);
 
 DLLExport int MQTTClient_get_broker(MQTTClient *handle, char* broker);
+
+DLLExport int MQTTClient_setup_with_appkey(char* appkey, REG_info *info);
 
 DLLExport int MQTTClient_waitForCompletion(MQTTClient handle, MQTTClient_deliveryToken dt, unsigned long timeout);
 
