@@ -100,7 +100,7 @@ cd build/output/
 ./samples/stdinpub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1
 
 ## with appkey i.e:
-./stdinpub_present rocket --host ahz-front-1 --appkey 53ce5bd063eddece25e7bd81
+./stdinpub_present rocket --appkey 53ce5bd063eddece25e7bd81
 
 
 STDOUT_LOG:
