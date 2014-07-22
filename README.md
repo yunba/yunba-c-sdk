@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Eclipse Paho MQTT C client
 
 
@@ -88,6 +87,9 @@ General questions about the MQTT protocol are discussed in the [MQTT Google Grou
 
 There is much more information available via the [MQTT community site](http://mqtt.org).
 
+## dependency base
+
+sudo apt-get install libcurl4-openssl-dev
 
 SAMPLE:
 make
