@@ -151,6 +151,12 @@ int main(int argc, char** argv)
 	
 	myconnect(&client, &conn_opts);
 
+	int ret;
+	printf("send push-alias\n");
+	ret = MQTTClient_publish_to_alias(client, "000000018302", strlen("a"), "a");
+	ret = MQTTClient_publish_to_alias(client, "000000018302", strlen("helloKitty"), "helloKitty");
+	ret = MQTTClient_publish_to_alias(client, "000000018302", strlen("helloKitty1"), "helloKitty1");
+
 	buffer = malloc(opts.maxdatalen);
 	
 	while (!toStop)
