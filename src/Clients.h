@@ -150,7 +150,8 @@ BE*/
 typedef struct
 {
 	int socket;
-	time_t lastContact;
+	time_t lastSent;
+	time_t lastReceived;
 #if defined(OPENSSL)
 	SSL* ssl;
 	SSL_CTX* ctx;
