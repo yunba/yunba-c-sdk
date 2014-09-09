@@ -67,12 +67,12 @@ unsigned long long int randm(int n)
         return y;
 }
 
-uint64_t generate_message_id() {
+uint64_t generate_uuid() {
         struct timeval t_start;
         gettimeofday(&t_start, NULL);
         uint64_t ms = ((uint64_t)t_start.tv_sec * 1000) + (uint64_t)t_start.tv_usec/1000;
         uint64_t id = ms << (64 - 41);
-        id |= randm(15) % (2 * (64 - 41));
+	id |= (uint64_t)(randm(16) % (unsigned long long int)(pow(2, (64 - 41))));
         return id;
 }
 
