@@ -89,7 +89,7 @@ uint64_t MQTTProtocol_assignMsgId(Clients* client)
 {
 	uint64_t msgid;
 	FUNC_ENTRY;
-	msgid = generate_message_id();
+	msgid = generate_uuid();
 	client->msgID = msgid;
 	FUNC_EXIT_RC(msgid);
 	return msgid;
