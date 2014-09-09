@@ -57,6 +57,27 @@ int messageIDCompare(void* a, void* b)
 	return msg->msgid == *(uint64_t*)b;
 }
 
+unsigned long long int randm(int n)
+{
+        double x;
+        unsigned long long int y;
+        srand(getpid());
+        x = rand() / (double)RAND_MAX;
+        y = (unsigned long long int) (x * pow(10.0, n*1.0));
+        return y;
+}
+
+uint64_t generate_message_id() {
+        struct timeval t_start;
+        gettimeofday(&t_start, NULL);
+        uint64_t ms = ((uint64_t)t_start.tv_sec * 1000) + (uint64_t)t_start.tv_usec/1000;
+        uint64_t id = ms << (64 - 41);
+        id |= randm(15) % (2 * (64 - 41));
+        return id;
+}
+
+
+
 
 /**
  * Assign a new message id for a client.  Make sure it isn't already being used and does
@@ -64,8 +85,16 @@ int messageIDCompare(void* a, void* b)
  * @param client a client structure
  * @return the next message id to use, or 0 if none available
  */
-int MQTTProtocol_assignMsgId(Clients* client)
+uint64_t MQTTProtocol_assignMsgId(Clients* client)
 {
+	uint64_t msgid;
+	FUNC_ENTRY;
+	msgid = generate_message_id();
+	client->msgID = msgid;
+        printf("%"PRIu64"\n", msgid);
+	FUNC_EXIT_RC(msgid);
+	return msgid;
+#if 0
 	int start_msgid = client->msgID;
 	uint64_t msgid = start_msgid;
 
@@ -84,6 +113,7 @@ int MQTTProtocol_assignMsgId(Clients* client)
 		client->msgID = msgid;
 	FUNC_EXIT_RC(msgid);
 	return msgid;
+#endif
 }
 
 

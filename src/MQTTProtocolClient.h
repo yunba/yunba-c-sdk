@@ -27,7 +27,7 @@
 #define MAX_MSG_ID 65535
 #define MAX_CLIENTID_LEN 23
 
-int MQTTProtocol_assignMsgId(Clients* client);
+uint64_t MQTTProtocol_assignMsgId(Clients* client);
 int MQTTProtocol_startPublish(Clients* pubclient, Publish* publish, int qos, int retained, Messages** m);
 int MQTTProtocol_startGet(Clients* getclient, Get* get, int qos, int retained, Messages** m);
 Messages* MQTTProtocol_createMessage(Publish* publish, Messages** mm, int qos, int retained);
@@ -36,7 +36,7 @@ Messages* MQTTProtocol_createGetMessage(Get* get, Messages** mm, int qos, int re
 Publications* MQTTProtocol_storeGet(Get* get, int* len);
 
 int messageIDCompare(void* a, void* b);
-int MQTTProtocol_assignMsgId(Clients* client);
+uint64_t MQTTProtocol_assignMsgId(Clients* client);
 void MQTTProtocol_removePublication(Publications* p);
 
 int MQTTProtocol_handlePublishes(void* pack, int sock);
