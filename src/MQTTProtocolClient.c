@@ -91,7 +91,6 @@ uint64_t MQTTProtocol_assignMsgId(Clients* client)
 	FUNC_ENTRY;
 	msgid = generate_message_id();
 	client->msgID = msgid;
-        printf("%"PRIu64"\n", msgid);
 	FUNC_EXIT_RC(msgid);
 	return msgid;
 #if 0
