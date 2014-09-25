@@ -49,8 +49,8 @@
 
 #define URI_TCP "tcp://"
 
-#define BUILD_TIMESTAMP "201408221458"
-#define CLIENT_VERSION  "1.0.0"
+#define BUILD_TIMESTAMP "##MQTTCLIENT_BUILD_TAG##"
+#define CLIENT_VERSION  "##MQTTCLIENT_VERSION_TAG##"
 
 char* client_timestamp_eye = "MQTTAsyncV3_Timestamp " BUILD_TIMESTAMP;
 char* client_version_eye = "MQTTAsyncV3_Version " CLIENT_VERSION;
@@ -1476,6 +1476,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 		}
 		if (rc == SOCKET_ERROR)
 		{
+			Log(TRACE_MINIMUM, -1, "Error from MQTTAsync_cycle() - removing socket %d", sock);
 			if (m->c->connected == 1)
 			{
 				MQTTAsync_unlock_mutex(mqttasync_mutex);
