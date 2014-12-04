@@ -237,10 +237,10 @@ MQTTVERSION_TARGET = ${blddir}/MQTTVersion
 CCFLAGS_SO = -ggdb -fPIC -O0 -Wall -fvisibility=hidden -Wno-deprecated-declarations -DUSE_NAMED_SEMAPHORES
 FLAGS_EXE = -I ${srcdir} -lpthread -L ${blddir}
 
-LDFLAGS_C = -shared -Wl,-install_name,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,_MQTTClient_init -lpthread 
-LDFLAGS_CS = -shared -Wl,-install_name,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -Wl,-init,_MQTTClient_init 
-LDFLAGS_A = -shared -Wl,-install_name,lib${MQTTLIB_A}.so.${MAJOR_VERSION} -Wl,-init,_MQTTAsync_init -lpthread
-LDFLAGS_AS = -shared -Wl,-install_name,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -Wl,-init,_MQTTAsync_init 
+LDFLAGS_C = -shared -Wl,-install_name,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,_MQTTClient_init -lpthread -lcurl
+LDFLAGS_CS = -shared -Wl,-install_name,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -Wl,-init,_MQTTClient_init -lcurl
+LDFLAGS_A = -shared -Wl,-install_name,lib${MQTTLIB_A}.so.${MAJOR_VERSION} -Wl,-init,_MQTTAsync_init -lpthread -lcurl
+LDFLAGS_AS = -shared -Wl,-install_name,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -Wl,-init,_MQTTAsync_init -lcurl
 
 all: build
 	
