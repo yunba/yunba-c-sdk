@@ -1733,15 +1733,19 @@ static size_t reg_cb(void *ptr, size_t size, size_t nmemb, void *userp)
 
 	cJSON *root = cJSON_Parse(buf);
 	if (root) {
-		strcpy(reg_info.client_id, cJSON_GetObjectItem(root,"c")->valuestring);
-		strcpy(reg_info.username, cJSON_GetObjectItem(root,"u")->valuestring);
-		strcpy(reg_info.password, cJSON_GetObjectItem(root,"p")->valuestring);
+		//TODO:
+		int ret_size = cJSON_GetArraySize(root);
+		if (ret_size > 1) {
+			strcpy(reg_info.client_id, cJSON_GetObjectItem(root,"c")->valuestring);
+			strcpy(reg_info.username, cJSON_GetObjectItem(root,"u")->valuestring);
+			strcpy(reg_info.password, cJSON_GetObjectItem(root,"p")->valuestring);
+			strcpy(reg_info.device_id, cJSON_GetObjectItem(root,"d")->valuestring);
+		} else
+			memset(&reg_info, 0, sizeof(REG_info));
 		cJSON_Delete(root);
 	}
 	return size * nmemb;
 }
-
-
 
 int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 {
@@ -1754,7 +1758,7 @@ int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 	curl = curl_easy_init();
 	if (curl) {
 			char json_data[1024];
-			sprintf(json_data, "{\"a\": \"%s\", \"p\":2}", appkey);
+			sprintf(json_data, "{\"a\": \"%s\", \"p\":4}", appkey);
 			curl_easy_setopt(curl, CURLOPT_URL, "http://reg.yunba.io:8383/device/reg/");
 
 			struct curl_slist *headers = NULL;
@@ -1774,6 +1778,7 @@ int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 			strcpy(info->client_id, reg_info.client_id);
 			strcpy(info->username, reg_info.username);
 			strcpy(info->password, reg_info.password);
+			strcpy(info->device_id, reg_info.device_id);
 
 			curl_easy_cleanup(curl);
 
@@ -1782,6 +1787,53 @@ int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 
 	return ret;
 }
+
+int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_info *info)
+{
+	CURL *curl;
+	CURLcode res;
+	int ret = -1;
+
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	curl = curl_easy_init();
+	if (curl) {
+			char json_data[1024];
+			sprintf(json_data, "{\"a\": \"%s\", \"p\":4, \"d\": \"%s\"}", appkey, deviceid);
+			curl_easy_setopt(curl, CURLOPT_URL, "http://reg.yunba.io:8383/device/reg/");
+
+			struct curl_slist *headers = NULL;
+			headers = curl_slist_append(headers, "Accept: application/json");
+			headers = curl_slist_append(headers, "Content-Type: application/json");
+			headers = curl_slist_append(headers, "charsets: utf-8");
+
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
+
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, reg_cb);
+			res = curl_easy_perform(curl);
+			if (res != CURLE_OK)
+					printf("get fail\n");
+			ret = (res == CURLE_OK)? 0 : -1;
+
+			if (strlen(reg_info.client_id) == 0 ||
+				strlen(reg_info.username) == 0 ||
+				strlen(reg_info.password) == 0)
+				ret = -1;
+			else {
+				strcpy(info->client_id, reg_info.client_id);
+				strcpy(info->username, reg_info.username);
+				strcpy(info->password, reg_info.password);
+				strcpy(info->device_id, reg_info.device_id);
+			}
+			curl_easy_cleanup(curl);
+
+			curl_global_cleanup();
+	}
+
+	return ret;
+}
+
 
 static char url_host[200];
 static size_t get_url_cb(void *ptr, size_t size, size_t nmemb, void *userp)

@@ -107,6 +107,7 @@ typedef struct {
 	char client_id[200];
 	char username[200];
 	char password[200];
+	char device_id[200];
 } REG_info;
 
 
@@ -654,6 +655,8 @@ DLLExport int MQTTClient_set_broker(MQTTClient *handle, char* broker);
 DLLExport int MQTTClient_get_broker(MQTTClient *handle, char* broker);
 
 DLLExport int MQTTClient_setup_with_appkey(char* appkey, REG_info *info);
+
+DLLExport int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_info *info);
 
 DLLExport int MQTTClient_get_host(char *appkey, char* url);
 

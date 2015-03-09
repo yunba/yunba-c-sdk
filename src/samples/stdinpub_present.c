@@ -67,6 +67,7 @@ void usage()
 	printf("  --delimiter <delim> (default is \\n)");
 	printf("  --maxdatalen 100\n");
 	printf("  --appkey xxxxxxxxxxxxxxxx\n");
+	printf("  --deviceid xxxxxxxxxxxxxxxx\n");
 	exit(-1);
 }
 
@@ -97,6 +98,7 @@ struct
 	int qos;
 	int retained;
 	char *appkey;
+	char *deviceid;
 //	char* username;
 //	char* password;
 //	char* host;
@@ -175,13 +177,13 @@ int main(int argc, char** argv)
 	topic = argv[1];
 	printf("Using topic %s\n", topic);
 
-	int res = MQTTClient_setup_with_appkey(opts.appkey, &my_reg_info);
+	int res = MQTTClient_setup_with_appkey_and_deviceid(opts.appkey, opts.deviceid, &my_reg_info);
 	if (res < 0) {
 		printf("can't get reg info\n");
 		return 0;
 	}
 
-	printf("Get reg info: client_id:%s,username:%s,password:%s\n", my_reg_info.client_id, my_reg_info.username, my_reg_info.password);
+	printf("Get reg info: client_id:%s,username:%s,password:%s, devide_id:%s\n", my_reg_info.client_id, my_reg_info.username, my_reg_info.password, my_reg_info.device_id);
 
 	res = MQTTClient_get_host(opts.appkey, url);
 	if (res < 0) {
@@ -314,6 +316,14 @@ void getopts(int argc, char** argv)
 		{
 			if (++count < argc)
 				opts.appkey = argv[count];
+			else
+				usage();
+		}
+
+		else if (strcmp(argv[count], "--deviceid") == 0)
+		{
+			if (++count < argc)
+				opts.deviceid = argv[count];
 			else
 				usage();
 		}
