@@ -1775,10 +1775,16 @@ int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 					printf("get fail\n");
 			ret = (res == CURLE_OK)? 0 : -1;
 
-			strcpy(info->client_id, reg_info.client_id);
-			strcpy(info->username, reg_info.username);
-			strcpy(info->password, reg_info.password);
-			strcpy(info->device_id, reg_info.device_id);
+			if (strlen(reg_info.client_id) == 0 ||
+				strlen(reg_info.username) == 0 ||
+				strlen(reg_info.password) == 0)
+				ret = -1;
+			else {
+				strcpy(info->client_id, reg_info.client_id);
+				strcpy(info->username, reg_info.username);
+				strcpy(info->password, reg_info.password);
+				strcpy(info->device_id, reg_info.device_id);
+			}
 
 			curl_easy_cleanup(curl);
 
@@ -1794,12 +1800,18 @@ int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_
 	CURLcode res;
 	int ret = -1;
 
+	if (appkey == NULL)
+		return ret;
+
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	curl = curl_easy_init();
 	if (curl) {
 			char json_data[1024];
-			sprintf(json_data, "{\"a\": \"%s\", \"p\":4, \"d\": \"%s\"}", appkey, deviceid);
+			if (deviceid == NULL)
+				sprintf(json_data, "{\"a\": \"%s\", \"p\":4}", appkey);
+			else
+				sprintf(json_data, "{\"a\": \"%s\", \"p\":4, \"d\": \"%s\"}", appkey, deviceid);
 			curl_easy_setopt(curl, CURLOPT_URL, "http://reg.yunba.io:8383/device/reg/");
 
 			struct curl_slist *headers = NULL;
@@ -2341,7 +2353,7 @@ MQTTClient_nameValue* MQTTClient_getVersionInfo()
 	static MQTTClient_nameValue libinfo;
 
 	libinfo.name = "Yunba SDK";
-	libinfo.value = "v1.0.0";
+	libinfo.value = "v1.0.1";
 	return &libinfo;
 
 #endif

@@ -99,6 +99,7 @@ struct
 	int retained;
 	char *appkey;
 	char *deviceid;
+	char *alias;
 //	char* username;
 //	char* password;
 //	char* host;
@@ -111,14 +112,15 @@ struct
 
 Presence_msg my_present;
 	MQTTClient client;
+	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
 void getopts(int argc, char** argv);
 
 
 int extendedCmdArrive(void *context, EXTED_CMD cmd, int status, int ret_string_len, char *ret_string)
 {
-	char buf[100];
-	memset(buf, 0, 100);
+	char buf[1024];
+	memset(buf, 0, 1024);
 	memcpy(buf, ret_string, ret_string_len);
 	printf("%s:%02x,%02x,%02x, %s\n", __func__, cmd, status, ret_string_len, buf);
 
@@ -155,10 +157,17 @@ int messageArrived(void* context, char* topicName, int topicLen, MQTTClient_mess
 	return 1;
 }
 
+void connectionLost(void *context, char *cause)
+{
+	myconnect(&client, &conn_opts);
+	printf("%s, %s, %s\r\n", __func__, context, cause);
+
+}
+
 int main(int argc, char** argv)
 {
 	//MQTTClient client;
-	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+//	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 	char* topic = NULL;
 	char* buffer = NULL;
 	int rc = 0;
@@ -206,7 +215,7 @@ int main(int argc, char** argv)
 
 	
 
-	rc = MQTTClient_setCallbacks(client, NULL, NULL, messageArrived, NULL, extendedCmdArrive);
+	rc = MQTTClient_setCallbacks(client, NULL, connectionLost, messageArrived, NULL, extendedCmdArrive);
 
 	conn_opts.keepAliveInterval = 10000;
 	conn_opts.reliable = 0;
@@ -218,13 +227,17 @@ int main(int argc, char** argv)
 
 	buffer = malloc(opts.maxdatalen);
 
-//	MQTTClient_presence(client, topic);
+	rc = MQTTClient_subscribe(client, topic);
+	printf("subscribe topic:%s, %i\n", topic, rc);
+
+	MQTTClient_set_alias(client, opts.alias);
+	//MQTTClient_presence(client, topic);
 
 	int ret = MQTTClient_get_aliaslist(client, topic);
-	printf("get aliaslist:%i\n", ret);
-	ret = MQTTClient_get_topic(client, "000000018302");
+	printf("get aliaslist:%i, topic:%s\n", ret, topic);
+	ret = MQTTClient_get_topic(client, "band1111");
 	printf("get topic:%i\n", ret);
-	ret = MQTTClient_get_status(client, "000000018302");
+	ret = MQTTClient_get_status(client, "band1111");
 	printf("get status:%i\n", ret);
 
 	ret = MQTTClient_report(client, "domytest", "abc");
@@ -254,6 +267,7 @@ int main(int argc, char** argv)
 		{
 			myconnect(&client, &conn_opts);
 			rc = MQTTClient_publish(client, topic, data_len, buffer);
+			printf("reconnect %i\n", rc);
 		}
 		if (opts.qos > 0)
 			MQTTClient_yield();
@@ -324,6 +338,11 @@ void getopts(int argc, char** argv)
 		{
 			if (++count < argc)
 				opts.deviceid = argv[count];
+		}
+		else if (strcmp(argv[count], "--alias") == 0)
+		{
+			if (++count < argc)
+				opts.alias = argv[count];
 			else
 				usage();
 		}
