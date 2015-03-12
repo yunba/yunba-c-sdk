@@ -217,7 +217,7 @@ int main(int argc, char** argv)
 
 	rc = MQTTClient_setCallbacks(client, NULL, connectionLost, messageArrived, NULL, extendedCmdArrive);
 
-	conn_opts.keepAliveInterval = 10000;
+	conn_opts.keepAliveInterval = 100;
 	conn_opts.reliable = 0;
 	conn_opts.cleansession = 1;
 	conn_opts.username = my_reg_info.username;
@@ -230,7 +230,10 @@ int main(int argc, char** argv)
 	rc = MQTTClient_subscribe(client, topic);
 	printf("subscribe topic:%s, %i\n", topic, rc);
 
-	MQTTClient_set_alias(client, opts.alias);
+	if (opts.alias != NULL) {
+		printf("set alias: %s\n", opts.alias);
+		MQTTClient_set_alias(client, opts.alias);
+	}
 	//MQTTClient_presence(client, topic);
 
 	int ret = MQTTClient_get_aliaslist(client, topic);
