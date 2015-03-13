@@ -89,7 +89,14 @@ There is much more information available via the [MQTT community site](http://mq
 
 ## dependency base
 
+### Ubuntu
 sudo apt-get install libcurl4-openssl-dev
+
+### Mac(homebrew)
+brew install curl
+
+### Source
+[CURL site](http://www.curl.haxx.se/)
 
 SAMPLE:
 make
