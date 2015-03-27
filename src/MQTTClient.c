@@ -1787,9 +1787,8 @@ int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 			}
 
 			curl_easy_cleanup(curl);
-
-			curl_global_cleanup();
 	}
+	curl_global_cleanup();
 
 	return ret;
 }
@@ -1839,9 +1838,8 @@ int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_
 				strcpy(info->device_id, reg_info.device_id);
 			}
 			curl_easy_cleanup(curl);
-
-			curl_global_cleanup();
 	}
+	curl_global_cleanup();
 
 	return ret;
 }
@@ -1898,8 +1896,8 @@ int MQTTClient_get_host(char *appkey, char* url)
 
 			curl_easy_cleanup(curl);
 
-			curl_global_cleanup();
 	}
+	curl_global_cleanup();
 
 	return ret;
 }
