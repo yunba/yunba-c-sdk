@@ -47,7 +47,7 @@
 #include <Windows.h>
 #define sleep Sleep
 #else
-#include <sys/time.h>
+#include <time.h>
 #include <stdlib.h>
 #endif
 
@@ -139,8 +139,11 @@ int messageArrived(void* context, char* topicName, int topicLen, MQTTClient_mess
 	ret = get_present_info(topicName, m, &my_present);
 	if (ret == 0)
 		printf("action:%s alias:%s\n", my_present.action, my_present.alias);
-
-	printf("Message arrived\n");
+	time_t t;
+	time(&t);
+	printf("Message arrived, date:%s", ctime(&t));
+	printf("     qos: %i\n", m->qos);
+	printf("     messageid: %"PRIu64"\n", m->msgid);
 	printf("     topic: %s\n", topicName);
 	printf("   message: ");
 
