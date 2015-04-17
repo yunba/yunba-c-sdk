@@ -87,28 +87,17 @@ General questions about the MQTT protocol are discussed in the [MQTT Google Grou
 
 There is much more information available via the [MQTT community site](http://mqtt.org).
 
-## dependency base
-
-### Ubuntu
-sudo apt-get install libcurl4-openssl-dev
-
-### Mac(homebrew)
-brew install curl
-
-### Source
-[CURL site](http://www.curl.haxx.se/)
 
 SAMPLE:
 make
 cd build/output/
-## do subscription in a new terminal as below, received messages will be shown in terminal
-./samples/stdoutsub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1
-## do publication in a new terminal as below
-./samples/stdinpub <topic> --host <host> --clientid <clientId> --username <username> --password <password> --qos 1
 
 ## with appkey i.e:
 ./stdinpub_present rocket --appkey 53ce5bd063eddece25e7bd81 --deviceid 1234567890
 
+
+##　注意
+该sdk中使用第三方cJSON。代码中 cJSON.h，cJSON.c。
 
 STDOUT_LOG:
 export MQTT_C_CLIENT_TRACE=stdout

@@ -103,7 +103,7 @@ typedef struct {
 } Presence_msg;
 
 
-typedef struct {
+typedef struct {// no limit of length in MQTT protocol (<256M)
 	char client_id[200];
 	char username[200];
 	char password[200];
