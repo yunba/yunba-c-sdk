@@ -2343,7 +2343,7 @@ MQTTClient_nameValue* MQTTClient_getVersionInfo()
 	static MQTTClient_nameValue libinfo;
 
 	libinfo.name = "Yunba SDK";
-	libinfo.value = "v1.0.2";
+	libinfo.value = "v1.0.3";
 	return &libinfo;
 
 #endif
