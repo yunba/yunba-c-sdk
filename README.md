@@ -92,12 +92,16 @@ SAMPLE:
 make
 cd build/output/
 
-## with appkey i.e:
-./stdinpub_present rocket --appkey 53ce5bd063eddece25e7bd81 --deviceid 1234567890
+## 例子
+
+./stdinpub_present <topic> --appkey <appkey> --deviceid <device-id>
 
 
-##　注意
-该sdk中使用第三方cJSON。代码中 cJSON.h，cJSON.c。
+## 第三方库
+
+该sdk中使用第三方的cJSON。src/cJSON.c src/cJSON.h。
+
+使用时请留意。
 
 STDOUT_LOG:
 export MQTT_C_CLIENT_TRACE=stdout
