@@ -90,7 +90,7 @@ There is much more information available via the [MQTT community site](http://mq
 
 SAMPLE:
 make
-cd build/output/
+cd build/output/samples/
 
 ## 例子
 
