@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009, 2013 IBM Corp.
+ * Copyright (c) 2009, 2014 IBM Corp.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -13,6 +13,7 @@
  * Contributors:
  *    Ian Craggs - initial API and implementation and/or initial documentation
  *    Ian Craggs, Allan Stockdill-Mander - SSL updates
+ *    Ian Craggs - MQTT 3.1.1 support
  *******************************************************************************/
 
 #if !defined(MQTTPROTOCOLOUT_H)
@@ -28,16 +29,16 @@
 
 #define DEFAULT_PORT 1883
 
-void MQTTProtocol_reconnect(char* ip_address, Clients* client);
+void MQTTProtocol_reconnect(const char* ip_address, Clients* client);
 #if defined(OPENSSL)
-int MQTTProtocol_connect(char* ip_address, Clients* acClients, int ssl);
+int MQTTProtocol_connect(const char* ip_address, Clients* acClients, int ssl, int MQTTVersion);
 #else
-int MQTTProtocol_connect(char* ip_address, Clients* acClients);
+int MQTTProtocol_connect(const char* ip_address, Clients* acClients, int MQTTVersion);
 #endif
 int MQTTProtocol_handlePingresps(void* pack, int sock);
-int MQTTProtocol_subscribe(Clients* client, List* topics, List* qoss);
+int MQTTProtocol_subscribe(Clients* client, List* topics, List* qoss, int msgID);
 int MQTTProtocol_handleSubacks(void* pack, int sock);
-int MQTTProtocol_unsubscribe(Clients* client, List* topics);
+int MQTTProtocol_unsubscribe(Clients* client, List* topics, int msgID);
 int MQTTProtocol_handleUnsubacks(void* pack, int sock);
 
 #endif

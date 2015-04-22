@@ -228,7 +228,7 @@ int main(int argc, char** argv)
 
 	buffer = malloc(opts.maxdatalen);
 
-	rc = MQTTClient_subscribe(client, topic);
+	rc = MQTTClient_subscribe(client, topic, 1);
 	printf("subscribe topic:%s, %i\n", topic, rc);
 
 	if (opts.alias != NULL) {

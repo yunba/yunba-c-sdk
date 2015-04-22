@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009, 201 IBM Corp.
+ * Copyright (c) 2009, 2014 IBM Corp.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -14,6 +14,8 @@
  *    Ian Craggs - initial API and implementation and/or initial documentation
  *    Ian Craggs, Allan Stockdill-Mander - SSL updates
  *    Ian Craggs - fix for buffer overflow in addressPort bug #433290
+ *    Ian Craggs - MQTT 3.1.1 support
+ *    Rong Xiang, Ian Craggs - C++ compatibility
  *******************************************************************************/
 
 /**
@@ -39,10 +41,10 @@ extern ClientStates* bstate;
  * @param port the returned port integer
  * @return the address string
  */
-char* MQTTProtocol_addressPort(char* uri, int* port)
+char* MQTTProtocol_addressPort(const char* uri, int* port)
 {
 	char* colon_pos = strrchr(uri, ':'); /* reverse find to allow for ':' in IPv6 addresses */
-	char* buf = uri;
+	char* buf = (char*)uri;
 	int len;
 
 	FUNC_ENTRY;
@@ -57,8 +59,7 @@ char* MQTTProtocol_addressPort(char* uri, int* port)
 		int addr_len = colon_pos - uri;
 		buf = malloc(addr_len + 1);
 		*port = atoi(colon_pos + 1);
-		strncpy(buf, uri, addr_len);
-		buf[addr_len] = '\0';
+		MQTTStrncpy(buf, uri, addr_len+1);
 	}
 	else
 		*port = DEFAULT_PORT;
@@ -75,18 +76,15 @@ char* MQTTProtocol_addressPort(char* uri, int* port)
 /**
  * MQTT outgoing connect processing for a client
  * @param ip_address the TCP address:port to connect to
- * @param clientID the MQTT client id to use
- * @param cleansession MQTT cleansession flag
- * @param keepalive MQTT keepalive timeout in seconds
- * @param willMessage pointer to the will message to be used, if any
- * @param username MQTT 3.1 username, or NULL
- * @param password MQTT 3.1 password, or NULL
- * @return the new client structure
+ * @param aClient a structure with all MQTT data needed
+ * @param int ssl
+ * @param int MQTTVersion the MQTT version to connect with (3 or 4)
+ * @return return code
  */
 #if defined(OPENSSL)
-int MQTTProtocol_connect(char* ip_address, Clients* aClient, int ssl)
+int MQTTProtocol_connect(const char* ip_address, Clients* aClient, int ssl, int MQTTVersion)
 #else
-int MQTTProtocol_connect(char* ip_address, Clients* aClient)
+int MQTTProtocol_connect(const char* ip_address, Clients* aClient, int MQTTVersion)
 #endif
 {
 	int rc, port;
@@ -118,7 +116,7 @@ int MQTTProtocol_connect(char* ip_address, Clients* aClient)
 		if (rc == 0)
 		{
 			/* Now send the MQTT connect packet */
-			if ((rc = MQTTPacket_send_connect(aClient)) == 0)
+			if ((rc = MQTTPacket_send_connect(aClient, MQTTVersion)) == 0)
 				aClient->connect_state = 3; /* MQTT Connect sent - wait for CONNACK */ 
 			else
 				aClient->connect_state = 0;
@@ -159,13 +157,13 @@ int MQTTProtocol_handlePingresps(void* pack, int sock)
  * @param qoss corresponding list of QoSs
  * @return completion code
  */
-int MQTTProtocol_subscribe(Clients* client, List* topics, List* qoss)
+int MQTTProtocol_subscribe(Clients* client, List* topics, List* qoss, int msgID)
 {
 	int rc = 0;
 
 	FUNC_ENTRY;
 	/* we should stack this up for retry processing too */
-	rc = MQTTPacket_send_subscribe(topics, qoss, MQTTProtocol_assignMsgId(client), 0, &client->net, client->clientID);
+	rc = MQTTPacket_send_subscribe(topics, qoss, msgID, 0, &client->net, client->clientID);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -198,13 +196,13 @@ int MQTTProtocol_handleSubacks(void* pack, int sock)
  * @param topics list of topics
  * @return completion code
  */
-int MQTTProtocol_unsubscribe(Clients* client, List* topics)
+int MQTTProtocol_unsubscribe(Clients* client, List* topics, int msgID)
 {
 	int rc = 0;
 
 	FUNC_ENTRY;
 	/* we should stack this up for retry processing too? */
-	rc = MQTTPacket_send_unsubscribe(topics, MQTTProtocol_assignMsgId(client), 0, &client->net, client->clientID);
+	rc = MQTTPacket_send_unsubscribe(topics, msgID, 0, &client->net, client->clientID);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }

@@ -102,6 +102,23 @@ typedef struct {
 	uint16_t occupancy_num;
 } Presence_msg;
 
+/**
+ * Default MQTT version to connect with.  Use 3.1.1 then fall back to 3.1
+ */
+#define MQTTVERSION_DEFAULT 0
+/**
+ * MQTT version to connect with: 3.1
+ */
+#define MQTTVERSION_3_1 3
+/**
+ * MQTT version to connect with: 3.1.1
+ */
+#define MQTTVERSION_3_1_1 4
+/**
+ * Bad return code from subscribe, as defined in the 3.1.1 specification
+ */
+#define MQTT_BAD_SUBSCRIBE 0x80
+
 
 typedef struct {// no limit of length in MQTT protocol (<256M)
 	char client_id[200];
@@ -337,7 +354,7 @@ DLLExport int MQTTClient_setCallbacks(MQTTClient handle, void* context, MQTTClie
  * @return ::MQTTCLIENT_SUCCESS if the client is successfully created, otherwise
  * an error code is returned.
  */
-DLLExport int MQTTClient_create(MQTTClient* handle, char* serverURI, char* clientId,
+DLLExport int MQTTClient_create(MQTTClient* handle, const char* serverURI, const char* clientId,
 		int persistence_type, void* persistence_context);
 
 /**
@@ -355,13 +372,13 @@ DLLExport int MQTTClient_create(MQTTClient* handle, char* serverURI, char* clien
 typedef struct
 {
 	/** The eyecatcher for this structure.  must be MQTW. */
-	char struct_id[4];
+	const char struct_id[4];
 	/** The version number of this structure.  Must be 0 */
 	int struct_version;
 	/** The LWT topic to which the LWT message will be published. */
-	char* topicName;
+	const char* topicName;
 	/** The LWT payload. */
-	char* message;
+	const char* message;
 	/**
       * The retained flag for the LWT message (see MQTTClient_message.retained).
       */
@@ -390,24 +407,24 @@ typedef struct
 typedef struct 
 {
 	/** The eyecatcher for this structure.  Must be MQTS */
-	char struct_id[4];
+	const char struct_id[4];
 	/** The version number of this structure.  Must be 0 */
 	int struct_version;	
 	
 	/** The file in PEM format containing the public digital certificates trusted by the client. */
-	char* trustStore;
+	const char* trustStore;
 
 	/** The file in PEM format containing the public certificate chain of the client. It may also include
 	* the client's private key. 
 	*/
-	char* keyStore;
+	const char* keyStore;
 	
 	/** If not included in the sslKeyStore, this setting points to the file in PEM format containing
 	* the client's private key.
 	*/
-	char* privateKey;
+	const char* privateKey;
 	/** The password to load the client's privateKey if encrypted. */
-	char* privateKeyPassword;
+	const char* privateKeyPassword;
  
 	/**
 	* The list of cipher suites that the client will present to the server during the SSL handshake. For a 
@@ -417,7 +434,7 @@ typedef struct
 	* those offering no encryption- will be considered.
 	* This setting can be used to set an SSL anonymous connection ("aNULL" string value, for instance).
 	*/
-	char* enabledCipherSuites;    
+	const char* enabledCipherSuites;
 
     /** True/False option to enable verification of the server certificate **/
     int enableServerCertAuth;
@@ -443,11 +460,13 @@ typedef struct
 typedef struct
 {
 	/** The eyecatcher for this structure.  must be MQTC. */
-	char struct_id[4];
-	/** The version number of this structure.  Must be 0, 1 or 2.  
-	  * 0 signifies no SSL options and no serverURIs
-	  * 1 signifies no serverURIs 
-	  */
+	const char struct_id[4];
+	/** The version number of this structure.  Must be 0, 1, 2, 3 or 4.  
+	 * 0 signifies no SSL options and no serverURIs
+	 * 1 signifies no serverURIs 
+	 * 2 signifies no MQTTVersion
+	 * 3 signifies no returned values
+	 */
 	int struct_version;
 	/** The "keep alive" interval, measured in seconds, defines the maximum time
    * that should pass without communication between the client and the server
@@ -498,17 +517,17 @@ typedef struct
    */
 	MQTTClient_willOptions* will;
 	/** 
-   * MQTT servers that support the MQTT v3.1 protocol provide authentication
+   * MQTT servers that support the MQTT v3.1.1 protocol provide authentication
    * and authorisation by user name and password. This is the user name 
    * parameter. 
    */
-	char* username;	
+	const char* username;	
 	/** 
-   * MQTT servers that support the MQTT v3.1 protocol provide authentication
+   * MQTT servers that support the MQTT v3.1.1 protocol provide authentication
    * and authorisation by user name and password. This is the password 
    * parameter.
    */
-	char* password;
+	const char* password;
 	/**
    * The time interval in seconds to allow a connect to complete.
    */
@@ -536,11 +555,33 @@ typedef struct
    * If this list is empty (the default), the server URI specified on MQTTClient_create()
    * is used.
    */    
-	char** serverURIs;
+	char* const* serverURIs;
+	/**
+	 * Sets the version of MQTT to be used on the connect.
+	 * MQTTVERSION_DEFAULT (0) = default: start with 3.1.1, and if that fails, fall back to 3.1
+	 * MQTTVERSION_3_1 (3) = only try version 3.1
+	 * MQTTVERSION_3_1_1 (4) = only try version 3.1.1
+	 */
+	int MQTTVersion;
+	/**
+	 * Returned from the connect when the MQTT version used to connect is 3.1.1
+	 */
+	struct 
+	{
+		const char* serverURI;     /**< the serverURI connected to */
+		int MQTTVersion;     /**< the MQTT version used to connect with */
+		int sessionPresent;  /**< if the MQTT version is 3.1.1, the value of sessionPresent returned in the connack */
+	} returned;
 } MQTTClient_connectOptions;
 
-#define MQTTClient_connectOptions_initializer { {'M', 'Q', 'T', 'C'}, 2, 60, 1, 1, NULL, NULL, NULL, 30, 20, NULL, 0, NULL }
+#define MQTTClient_connectOptions_initializer { {'M', 'Q', 'T', 'C'}, 4, 60, 1, 1, NULL, NULL, NULL, 30, 20, NULL, 0, NULL, 0}
 
+/**
+  * MQTTClient_libraryInfo is used to store details relating to the currently used
+  * library such as the version in use, the time it was built and relevant openSSL
+  * options. 
+  * There is one static instance of this struct in MQTTClient.c
+  */
 
 typedef struct
 {
@@ -548,6 +589,11 @@ typedef struct
 	const char* value;
 } MQTTClient_nameValue;
 
+/**
+  * This function returns version information about the library.
+  * no trace information will be returned.
+  * @return an array of strings describing the library.  The last entry is a NULL pointer.
+  */
 DLLExport MQTTClient_nameValue* MQTTClient_getVersionInfo(void);
 
 /**
@@ -618,7 +664,7 @@ DLLExport int MQTTClient_isConnected(MQTTClient handle);
   * An error code is returned if there was a problem registering the 
   * subscription. 
   */
-DLLExport int MQTTClient_subscribe(MQTTClient handle, char* topic);
+DLLExport int MQTTClient_subscribe(MQTTClient handle, const char* topic, int qos);
 
 DLLExport int MQTTClient_subscribe_many(MQTTClient handle, int count, char** topic);
 
@@ -628,11 +674,11 @@ DLLExport int MQTTClient_unpresence(MQTTClient handle, char* topic);
 
 DLLExport int get_present_info(char *topicName, MQTTClient_message* m, Presence_msg *presence_status);
 
-DLLExport int MQTTClient_unsubscribe(MQTTClient handle, char* topic);
+DLLExport int MQTTClient_unsubscribe(MQTTClient handle, const char* topic);
 
 DLLExport int MQTTClient_unsubscribe_many(MQTTClient handle, int count, char** topic);
 
-DLLExport int MQTTClient_publish(MQTTClient handle, char* topicName, int data_len, void* data);
+DLLExport int MQTTClient_publish(MQTTClient handle, const char* topicName, int data_len, void* data);
 
 DLLExport int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data);
 

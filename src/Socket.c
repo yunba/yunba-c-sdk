@@ -98,7 +98,7 @@ int Socket_error(char* aString, int sock)
 	if (errno != EINTR && errno != EAGAIN && errno != EINPROGRESS && errno != EWOULDBLOCK)
 	{
 		if (strcmp(aString, "shutdown") != 0 || (errno != ENOTCONN && errno != ECONNRESET))
-			Log(TRACE_MIN, -1, "Socket error %s in %s for socket %d", strerror(errno), aString, sock);
+			Log(TRACE_MINIMUM, -1, "Socket error %s in %s for socket %d", strerror(errno), aString, sock);
 	}
 	FUNC_EXIT_RC(errno);
 	return errno;
@@ -170,7 +170,7 @@ int Socket_addSocket(int newSd)
 		rc = Socket_setnonblocking(newSd);
 	}
 	else
-		Log(TRACE_MIN, -1, "addSocket: socket %d already in the list", newSd);
+		Log(LOG_ERROR, -1, "addSocket: socket %d already in the list", newSd);
 
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -433,10 +433,11 @@ int Socket_writev(int socket, iobuf* iovecs, int count, unsigned long* bytes)
  *  @param buflens an array of corresponding buffer lengths
  *  @return completion code, especially TCPSOCKET_INTERRUPTED
  */
-int Socket_putdatas(int socket, char* buf0, int buf0len, int count, char** buffers, int* buflens)
+int Socket_putdatas(int socket, char* buf0, size_t buf0len, int count, char** buffers, size_t* buflens, int* frees)
 {
 	unsigned long bytes = 0L;
 	iobuf iovecs[5];
+	int frees1[5];
 	int rc = TCPSOCKET_INTERRUPTED, i, total = buf0len;
 
 	FUNC_ENTRY;
@@ -452,22 +453,13 @@ int Socket_putdatas(int socket, char* buf0, int buf0len, int count, char** buffe
 
 	iovecs[0].iov_base = buf0;
 	iovecs[0].iov_len = buf0len;
+	frees1[0] = 1;
 	for (i = 0; i < count; i++)
 	{
 		iovecs[i+1].iov_base = buffers[i];
 		iovecs[i+1].iov_len = buflens[i];
-
-        /*
-        printf("out put buffers: 0x");
-        for (int j=0; j<buflens[i]; j++) {
-            printf("%x", (uint8_t)buffers[i][j]);
-            if (j%2) {
-                printf(" ");
-            }
-        }
-        printf("\n");
-        */
-    }
+		frees1[i+1] = frees[i];
+	}
 
 	if ((rc = Socket_writev(socket, iovecs, count+1, &bytes)) != SOCKET_ERROR)
 	{
@@ -479,9 +471,9 @@ int Socket_putdatas(int socket, char* buf0, int buf0len, int count, char** buffe
 			Log(TRACE_MIN, -1, "Partial write: %ld bytes of %d actually written on socket %d",
 					bytes, total, socket);
 #if defined(OPENSSL)
-			SocketBuffer_pendingWrite(socket, NULL, count+1, iovecs, total, bytes);
+			SocketBuffer_pendingWrite(socket, NULL, count+1, iovecs, frees1, total, bytes);
 #else
-			SocketBuffer_pendingWrite(socket, count+1, iovecs, total, bytes);
+			SocketBuffer_pendingWrite(socket, count+1, iovecs, frees1, total, bytes);
 #endif
 			*sockmem = socket;
 			ListAppend(s.write_pending, sockmem, sizeof(int));
@@ -567,7 +559,7 @@ void Socket_close(int socket)
 	if (ListRemoveItem(s.clientsds, &socket, intcompare))
 		Log(TRACE_MIN, -1, "Removed socket %d", socket);
 	else
-		Log(TRACE_MIN, -1, "Failed to remove socket %d", socket);
+		Log(LOG_ERROR, -1, "Failed to remove socket %d", socket);
 	if (socket + 1 >= s.maxfdp1)
 	{
 		/* now we have to reset s.maxfdp1 */
@@ -648,10 +640,10 @@ int Socket_new(char* addr, int port, int* sock)
 		else
 			rc = -1;
 
-    freeaddrinfo(result);
+		freeaddrinfo(result);
 	}
-  else
-  	Log(TRACE_MIN, -1, "getaddrinfo failed for addr %s with rc %d", addr, rc);
+	else
+	  	Log(LOG_ERROR, -1, "getaddrinfo failed for addr %s with rc %d", addr, rc);
 
 	if (rc != 0)
 		Log(LOG_ERROR, -1, "%s is not a valid IP address", addr);
@@ -666,7 +658,7 @@ int Socket_new(char* addr, int port, int* sock)
 			int opt = 1;
 
 			if (setsockopt(*sock, SOL_SOCKET, SO_NOSIGPIPE, (void*)&opt, sizeof(opt)) != 0)
-				Log(TRACE_MIN, -1, "Could not set SO_NOSIGPIPE for socket %d", *sock);
+				Log(LOG_ERROR, -1, "Could not set SO_NOSIGPIPE for socket %d", *sock);
 #endif
 
 			Log(TRACE_MIN, -1, "New socket %d for %s, port %d",	*sock, addr, port);
@@ -754,10 +746,11 @@ int Socket_continueWrite(int socket)
 		pw->bytes += bytes;
 		if ((rc = (pw->bytes == pw->total)))
 		{  /* topic and payload buffers are freed elsewhere, when all references to them have been removed */
-			free(pw->iovecs[0].iov_base);
-			free(pw->iovecs[1].iov_base);
-			if (pw->count == 5)
-				free(pw->iovecs[3].iov_base);
+			for (i = 0; i < pw->count; i++)
+			{
+				if (pw->frees[i])
+					free(pw->iovecs[i].iov_base);
+			}
 			Log(TRACE_MIN, -1, "ContinueWrite: partial write now complete for socket %d", socket);		
 		}
 		else
