@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 	
 	myconnect(&client, &conn_opts);
 	
-	rc = MQTTClient_subscribe(client, topic);
+	rc = MQTTClient_subscribe(client, topic, 1);
 
 	while (!toStop)
 	{

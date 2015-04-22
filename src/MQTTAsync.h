@@ -14,6 +14,7 @@
  *    Ian Craggs - initial API and implementation 
  *    Ian Craggs, Allan Stockdill-Mander - SSL connections
  *    Ian Craggs - multiple server connection support
+ *    Ian Craggs - MQTT 3.1.1 support
  *******************************************************************************/
 
 /********************************************************************/
@@ -91,8 +92,6 @@
 #endif
 
 #include <stdio.h>
-#include <inttypes.h>
-
 /// @endcond
 
 #if !defined(NO_PERSISTENCE)
@@ -243,7 +242,7 @@ typedef struct
 	/** The message identifier is normally reserved for internal use by the
       * MQTT client and server. 
       */
-	uint64_t msgid;
+	int msgid;
 } MQTTAsync_message;
 
 #define MQTTAsync_message_initializer { {'M', 'Q', 'T', 'M'}, 0, 0, NULL, 0, 0, 0, 0 }
@@ -582,6 +581,7 @@ typedef struct
 	/** The version number of this structure.  Must be 0, 1 or 2.  
 	  * 0 signifies no SSL options and no serverURIs
 	  * 1 signifies no serverURIs 
+      * 2 signifies no MQTTVersion
 	  */
 	int struct_version;
 	/** The "keep alive" interval, measured in seconds, defines the maximum time
@@ -1120,7 +1120,7 @@ void connlost(void *context, char *cause)
 	printf("     cause: %s\n", cause);
 
 	printf("Reconnecting\n");
-	conn_opts.keepAliveInterval = 300;
+	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
 	if ((rc = MQTTAsync_connect(client, &conn_opts)) != MQTTASYNC_SUCCESS)
 	{
@@ -1201,7 +1201,7 @@ int main(int argc, char* argv[])
 
 	MQTTAsync_setCallbacks(client, NULL, connlost, NULL, NULL);
 
-	conn_opts.keepAliveInterval = 300;
+	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
 	conn_opts.onSuccess = onConnect;
 	conn_opts.onFailure = onConnectFailure;
@@ -1257,7 +1257,7 @@ void connlost(void *context, char *cause)
 	printf("     cause: %s\n", cause);
 
 	printf("Reconnecting\n");
-	conn_opts.keepAliveInterval = 300;
+	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
 	if ((rc = MQTTAsync_connect(client, &conn_opts)) != MQTTASYNC_SUCCESS)
 	{
@@ -1354,7 +1354,7 @@ int main(int argc, char* argv[])
 
 	MQTTAsync_setCallbacks(client, NULL, connlost, msgarrvd, NULL);
 
-	conn_opts.keepAliveInterval = 300;
+	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
 	conn_opts.onSuccess = onConnect;
 	conn_opts.onFailure = onConnectFailure;

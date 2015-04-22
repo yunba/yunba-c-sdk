@@ -333,8 +333,8 @@ void MQTTPersistence_insertInOrder(List* list, void* content, size_t size)
  * receiving direction.
  * @return 0 if success, #MQTTCLIENT_PERSISTENCE_ERROR otherwise.
  */
-int MQTTPersistence_put(int socket, char* buf0, int buf0len, int count,
-								 char** buffers, int* buflens, int htype, uint64_t msgId, int scr )
+int MQTTPersistence_put(int socket, char* buf0, size_t buf0len, int count,
+								 char** buffers, size_t* buflens, int htype, uint64_t msgId, int scr )
 {
 	int rc = 0;
 	extern ClientStates* bstate;

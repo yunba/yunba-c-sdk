@@ -17,7 +17,8 @@
  *    Ian Craggs - fix for bug 413429 - connectionLost not called
  *    Ian Craggs - fix for bug 415042 - using already freed structure
  *    Ian Craggs - fix for bug 419233 - mutexes not reporting errors
- *    Ian Craggs - fix for bug #420851
+ *    Ian Craggs - fix for bug 420851
+ *    Ian Craggs - fix for bug 432903 - queue persistence
  *    Ian Craggs - MQTT 3.1.1 support
  *    Rong Xiang, Ian Craggs - C++ compatibility
  *    Ian Craggs - fix for bug 442400: reconnecting after network cable unplugged
@@ -51,8 +52,8 @@
 
 #define URI_TCP "tcp://"
 
-#define BUILD_TIMESTAMP "##MQTTCLIENT_BUILD_TAG##"
-#define CLIENT_VERSION  "##MQTTCLIENT_VERSION_TAG##"
+#define BUILD_TIMESTAMP "Mon Apr 20 17:31:00 HKT 2015"
+#define CLIENT_VERSION  "1.0.3"
 
 char* client_timestamp_eye = "MQTTAsyncV3_Timestamp " BUILD_TIMESTAMP;
 char* client_version_eye = "MQTTAsyncV3_Version " CLIENT_VERSION;
@@ -255,7 +256,7 @@ typedef struct
 			int serverURIcount;
 			char** serverURIs;
 			int currentURI;
-      int MQTTVersion;
+			int MQTTVersion; /**< current MQTT version being used to connect */
 		} conn;
 	} details;
 } MQTTAsync_command;
@@ -340,13 +341,13 @@ void MQTTAsync_unlock_mutex(mutex_type amutex)
 }
 
 
-int MQTTAsync_checkConn(MQTTAsync_command* command)
+int MQTTAsync_checkConn(MQTTAsync_command* command, MQTTAsyncs* client)
 {
   int rc;
 
   FUNC_ENTRY;
   rc = command->details.conn.currentURI < command->details.conn.serverURIcount ||
-      command->details.conn.MQTTVersion == 4;
+      (command->details.conn.MQTTVersion == 4 && client->c->MQTTVersion == MQTTVERSION_DEFAULT);
   FUNC_EXIT_RC(rc);
   return rc;
 }
@@ -989,11 +990,16 @@ void MQTTAsync_processCommand()
 
 			if (command->command.details.conn.serverURIcount > 0)
 			{
-				if (command->command.details.conn.MQTTVersion == 3)
+				if (command->client->c->MQTTVersion == MQTTVERSION_DEFAULT)
 				{
+					if (command->command.details.conn.MQTTVersion == 3)
+					{
+						command->command.details.conn.currentURI++;
+						command->command.details.conn.MQTTVersion = 4;
+					} 
+				}
+				else
 					command->command.details.conn.currentURI++;
-					command->command.details.conn.MQTTVersion = 4;
-				}          
 				serverURI = command->command.details.conn.serverURIs[command->command.details.conn.currentURI];
 					
 				if (strncmp(URI_TCP, serverURI, strlen(URI_TCP)) == 0)
@@ -1007,10 +1013,15 @@ void MQTTAsync_processCommand()
 #endif
 			}
 
-			if (command->command.details.conn.MQTTVersion == 0)
-				command->command.details.conn.MQTTVersion = 4;
-			else if (command->command.details.conn.MQTTVersion == 4)
-				command->command.details.conn.MQTTVersion = 3;
+			if (command->client->c->MQTTVersion == MQTTVERSION_DEFAULT)
+			{
+				if (command->command.details.conn.MQTTVersion == 0)
+					command->command.details.conn.MQTTVersion = MQTTVERSION_3_1_1;
+				else if (command->command.details.conn.MQTTVersion == MQTTVERSION_3_1_1)
+					command->command.details.conn.MQTTVersion = MQTTVERSION_3_1;
+			}
+			else
+				command->command.details.conn.MQTTVersion = command->client->c->MQTTVersion;
 
 			Log(TRACE_MIN, -1, "Connecting to serverURI %s with MQTT version %d", serverURI, command->command.details.conn.MQTTVersion);
 #if defined(OPENSSL)
@@ -1133,7 +1144,7 @@ void MQTTAsync_processCommand()
 		else
 			MQTTAsync_disconnect_internal(command->client, 0);
 			
-		if (command->command.type == CONNECT && MQTTAsync_checkConn(&command->command))
+		if (command->command.type == CONNECT && MQTTAsync_checkConn(&command->command, command->client))
 		{
 			Log(TRACE_MIN, -1, "Connect failed, more to try");
 			/* put the connect command back to the head of the command queue, using the next serverURI */
@@ -1183,7 +1194,7 @@ void MQTTAsync_checkTimeouts()
 		/* check connect timeout */
 		if (m->c->connect_state != 0 && MQTTAsync_elapsed(m->connect.start_time) > (m->connect.details.conn.timeout * 1000))
 		{
-			if (MQTTAsync_checkConn(&m->connect))
+			if (MQTTAsync_checkConn(&m->connect, m))
 			{
 				MQTTAsync_queuedCommand* conn;
 				
@@ -1193,7 +1204,7 @@ void MQTTAsync_checkTimeouts()
 				memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
 				conn->client = m;
 				conn->command = m->connect;
-				Log(TRACE_MIN, -1, "Connect failed, more to try");
+				Log(TRACE_MIN, -1, "Connect failed with timeout, more to try");
 				MQTTAsync_addCommand(conn, sizeof(m->connect));
 			}
 			else
@@ -1547,7 +1558,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 					}
 					else
 					{
-						if (MQTTAsync_checkConn(&m->connect))
+						if (MQTTAsync_checkConn(&m->connect, m))
 						{
 							MQTTAsync_queuedCommand* conn;
 							
@@ -1914,7 +1925,8 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 	}
 
 	if (strncmp(options->struct_id, "MQTC", 4) != 0 || 
-		(options->struct_version != 0 && options->struct_version != 1 && options->struct_version != 2))
+		(options->struct_version != 0 && options->struct_version != 1 && options->struct_version != 2 && 
+         options->struct_version != 3))
 	{
 		rc = MQTTASYNC_BAD_STRUCTURE;
 		goto exit;
@@ -1970,6 +1982,10 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 	m->c->keepAliveInterval = options->keepAliveInterval;
 	m->c->cleansession = options->cleansession;
 	m->c->maxInflightMessages = options->maxInflight;
+	if (options->struct_version == 3)
+		m->c->MQTTVersion = options->MQTTVersion;
+	else
+		m->c->MQTTVersion = 0;
 
 	if (m->c->will)
 	{
@@ -2183,7 +2199,7 @@ int MQTTAsync_assignMsgId(MQTTAsyncs* m)
 }
 
 
-int MQTTAsync_subscribeMany(MQTTAsync handle, size_t count, char* const* topic, int* qos, MQTTAsync_responseOptions* response)
+int MQTTAsync_subscribeMany(MQTTAsync handle, int count, char* const* topic, int* qos, MQTTAsync_responseOptions* response)
 {
 	MQTTAsyncs* m = handle;
 	int i = 0;
@@ -2463,7 +2479,7 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 					goto exit;
 				}
 				else if (rc == 1) 
-        {
+				{
 					rc = MQTTCLIENT_SUCCESS;
 					m->c->connect_state = 3;
 					if (MQTTPacket_send_connect(m->c, m->connect.details.conn.MQTTVersion) == SOCKET_ERROR)
@@ -2471,7 +2487,7 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 						rc = SOCKET_ERROR;
 						goto exit;
 					}
-					if(!m->c->cleansession && m->c->session == NULL)
+					if (!m->c->cleansession && m->c->session == NULL)
 						m->c->session = SSL_get1_session(m->c->net.ssl);
 				}
 			}
@@ -2508,7 +2524,7 @@ int MQTTAsync_connecting(MQTTAsyncs* m)
 exit:
 	if ((rc != 0 && rc != TCPSOCKET_INTERRUPTED && m->c->connect_state != 2) || (rc == SSL_FATAL))
 	{
-		if (MQTTAsync_checkConn(&m->connect))
+		if (MQTTAsync_checkConn(&m->connect, m))
 		{
 			MQTTAsync_queuedCommand* conn;
 				
@@ -2588,7 +2604,7 @@ MQTTPacket* MQTTAsync_cycle(int* sock, unsigned long timeout, int* rc)
 			if (m->c->connect_state == 3 && *rc == SOCKET_ERROR)
 			{
 				Log(TRACE_MINIMUM, -1, "CONNECT sent but MQTTPacket_Factory has returned SOCKET_ERROR");
-				if (MQTTAsync_checkConn(&m->connect))
+				if (MQTTAsync_checkConn(&m->connect, m))
 				{
 					MQTTAsync_queuedCommand* conn;
 
@@ -2622,7 +2638,7 @@ MQTTPacket* MQTTAsync_cycle(int* sock, unsigned long timeout, int* rc)
 				*rc = MQTTProtocol_handlePublishes(pack, *sock);
 			else if (pack->header.bits.type == PUBACK || pack->header.bits.type == PUBCOMP)
 			{
-				uint64_t msgid;
+				int msgid;
 
 				ack = (pack->header.bits.type == PUBCOMP) ? *(Pubcomp*)pack : *(Puback*)pack;
 				msgid = ack.msgId;

@@ -27,7 +27,7 @@
 #include "Messages.h"
 
 #define MAX_MSG_ID 65535
-#define MAX_CLIENTID_LEN 23
+#define MAX_CLIENTID_LEN 65535
 
 uint64_t MQTTProtocol_assignMsgId(Clients* client);
 int MQTTProtocol_startPublish(Clients* pubclient, Publish* publish, int qos, int retained, Messages** m);

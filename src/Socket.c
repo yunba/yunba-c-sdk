@@ -437,6 +437,7 @@ int Socket_putdatas(int socket, char* buf0, size_t buf0len, int count, char** bu
 {
 	unsigned long bytes = 0L;
 	iobuf iovecs[5];
+	int frees1[5];
 	int rc = TCPSOCKET_INTERRUPTED, i, total = buf0len;
 
 	FUNC_ENTRY;
@@ -452,22 +453,13 @@ int Socket_putdatas(int socket, char* buf0, size_t buf0len, int count, char** bu
 
 	iovecs[0].iov_base = buf0;
 	iovecs[0].iov_len = buf0len;
+	frees1[0] = 1;
 	for (i = 0; i < count; i++)
 	{
 		iovecs[i+1].iov_base = buffers[i];
 		iovecs[i+1].iov_len = buflens[i];
-
-        /*
-        printf("out put buffers: 0x");
-        for (int j=0; j<buflens[i]; j++) {
-            printf("%x", (uint8_t)buffers[i][j]);
-            if (j%2) {
-                printf(" ");
-            }
-        }
-        printf("\n");
-        */
-    }
+		frees1[i+1] = frees[i];
+	}
 
 	if ((rc = Socket_writev(socket, iovecs, count+1, &bytes)) != SOCKET_ERROR)
 	{
@@ -479,9 +471,9 @@ int Socket_putdatas(int socket, char* buf0, size_t buf0len, int count, char** bu
 			Log(TRACE_MIN, -1, "Partial write: %ld bytes of %d actually written on socket %d",
 					bytes, total, socket);
 #if defined(OPENSSL)
-			SocketBuffer_pendingWrite(socket, NULL, count+1, iovecs, total, bytes);
+			SocketBuffer_pendingWrite(socket, NULL, count+1, iovecs, frees1, total, bytes);
 #else
-			SocketBuffer_pendingWrite(socket, count+1, iovecs, total, bytes);
+			SocketBuffer_pendingWrite(socket, count+1, iovecs, frees1, total, bytes);
 #endif
 			*sockmem = socket;
 			ListAppend(s.write_pending, sockmem, sizeof(int));
@@ -754,10 +746,11 @@ int Socket_continueWrite(int socket)
 		pw->bytes += bytes;
 		if ((rc = (pw->bytes == pw->total)))
 		{  /* topic and payload buffers are freed elsewhere, when all references to them have been removed */
-			free(pw->iovecs[0].iov_base);
-			free(pw->iovecs[1].iov_base);
-			if (pw->count == 5)
-				free(pw->iovecs[3].iov_base);
+			for (i = 0; i < pw->count; i++)
+			{
+				if (pw->frees[i])
+					free(pw->iovecs[i].iov_base);
+			}
 			Log(TRACE_MIN, -1, "ContinueWrite: partial write now complete for socket %d", socket);		
 		}
 		else

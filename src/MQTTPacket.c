@@ -194,10 +194,10 @@ int MQTTPacket_send(networkHandles* net, Header header, char* buffer, size_t buf
 
 #if defined(OPENSSL)
 	if (net->ssl)
-		rc = SSLSocket_putdatas(net->ssl, net->socket, buf, buf0len, 1, &buffer, &buflen);
+		rc = SSLSocket_putdatas(net->ssl, net->socket, buf, buf0len, 1, &buffer, &buflen, &free);
 	else
 #endif
-		rc = Socket_putdatas(net->socket, buf, buf0len, 1, &buffer, &buflen);
+		rc = Socket_putdatas(net->socket, buf, buf0len, 1, &buffer, &buflen, &free);
 		
 	if (rc == TCPSOCKET_COMPLETE)
 		time(&(net->lastSent));
@@ -227,8 +227,9 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 	FUNC_ENTRY;
 	buf = malloc(10);
 	buf[0] = header.byte;
-	for (i = 0; i < count; i++)
+	for (i = 0; i < count; i++) {
 		total += buflens[i];
+	}
 
 	buf0len = 1 + MQTTPacket_encode(&buf[1], total);
 
@@ -243,19 +244,16 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 #endif
 #if defined(OPENSSL)
 	if (net->ssl)
-		rc = SSLSocket_putdatas(net->ssl, net->socket, buf, buf0len, count, buffers, buflens);
+		rc = SSLSocket_putdatas(net->ssl, net->socket, buf, buf0len, count, buffers, buflens, frees);
 	else
 #endif
-
-		rc = Socket_putdatas(net->socket, buf, buf0len, count, buffers, buflens);
-
+		rc = Socket_putdatas(net->socket, buf, buf0len, count, buffers, buflens, frees);
+		
 	if (rc == TCPSOCKET_COMPLETE)
 		time(&(net->lastSent));
 	
-
 	if (rc != TCPSOCKET_INTERRUPTED)
 	  free(buf);
-
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -501,7 +499,7 @@ int MQTTPacket_send_disconnect(networkHandles *net, const char* clientID)
 	FUNC_ENTRY;
 	header.byte = 0;
 	header.bits.type = DISCONNECT;
-	rc = MQTTPacket_send(net, header, NULL, 0);
+	rc = MQTTPacket_send(net, header, NULL, 0, 0);
 	Log(LOG_PROTOCOL, 28, NULL, net->socket, clientID, rc);
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -732,7 +730,7 @@ void* MQTTPacket_ack(unsigned char aHeader, char* data, size_t datalen)
 
 
 
-int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandles* net, char* clientID)
+int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandles* net, const char* clientID)
 {
 	Header header;
 	int rc = -1;
@@ -743,6 +741,7 @@ int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandle
 	header.bits.dup = dup;
 	header.bits.qos = qos;
 	header.bits.retain = retained;
+
 	if (qos > 0)
 	{
 		char *buf = malloc(8);
@@ -750,12 +749,13 @@ int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandle
 		char *cmd = &(pack->ext_payload.ext_cmd);
 
 		char* bufs[4] = {buf, cmd, parm_len, (char *)pack->ext_payload.ext_buf};
-		int lens[4] = {8, 1, 2, strlen((char *)pack->ext_payload.ext_buf)};
+		size_t lens[4] = {8, 1, 2, strlen((char *)pack->ext_payload.ext_buf)};
+		int frees[4] = {1, 1, 1, 1};
 
 		writeInt64(&ptr, pack->msgId);
 		ptr = parm_len;
 		writeInt(&ptr, lens[3]);
-		rc = MQTTPacket_sends(net, header, 4, bufs, lens);
+		rc = MQTTPacket_sends(net, header, 4, bufs, lens, frees);
 		if (rc != TCPSOCKET_INTERRUPTED)
 			free(buf);
 	}
@@ -765,8 +765,9 @@ int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandle
 		char *ptr = parm_len;
 		char* bufs[3] = {cmd, parm_len, (char *)pack->ext_payload.ext_buf};
 		int lens[3] = {1, 2, strlen((char *)pack->ext_payload.ext_buf)};
+		int frees[4] = {1, 0, 1, 0};
 		writeInt(&ptr, lens[2]);
-		rc = MQTTPacket_sends(net, header, 3, bufs, lens);
+		rc = MQTTPacket_sends(net, header, 3, bufs, lens, frees);
 	}
 
 //	if (rc != TCPSOCKET_INTERRUPTED)
@@ -818,7 +819,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 		writeInt64(&ptr, pack->msgId);
 		ptr = topiclen;
 		writeInt(&ptr, lens[1]);
-		rc = MQTTPacket_sends(net, header, 4, bufs, lens);
+		rc = MQTTPacket_sends(net, header, 4, bufs, lens, frees);
 		if (rc != TCPSOCKET_INTERRUPTED)
 			free(buf);
 	}
@@ -830,7 +831,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 		int frees[3] = {1, 0, 0};
 
 		writeInt(&ptr, lens[1]);
-		rc = MQTTPacket_sends(net, header, 3, bufs, lens);
+		rc = MQTTPacket_sends(net, header, 3, bufs, lens, frees);
 	}
 	if (rc != TCPSOCKET_INTERRUPTED)
 		free(topiclen);

@@ -19,7 +19,8 @@
  *    Ian Craggs - fix for bug 413429 - connectionLost not called
  *    Ian Craggs - fix for bug 421103 - trying to write to same socket, in publish/retries
  *    Ian Craggs - fix for bug 419233 - mutexes not reporting errors
- *    Ian Craggs - fix for bug #420851
+ *    Ian Craggs - fix for bug 420851
+ *    Ian Craggs - fix for bug 432903 - queue persistence
  *    Ian Craggs - MQTT 3.1.1 support
  *    Ian Craggs - fix for bug 438176 - MQTT version selection
  *    Rong Xiang, Ian Craggs - C++ compatibility
@@ -60,8 +61,8 @@
 
 #define URI_TCP "tcp://"
 
-#define BUILD_TIMESTAMP "##MQTTCLIENT_BUILD_TAG##"
-#define CLIENT_VERSION  "##MQTTCLIENT_VERSION_TAG##"
+#define BUILD_TIMESTAMP "Mon Apr 20 16:21:07 HKT 2015"
+#define CLIENT_VERSION  "1.0.3"
 
 #define DEFAULT_QOS 1
 #define DEFAULT_RETAINED 0
@@ -1021,8 +1022,8 @@ int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options,
 	m->c->password = options->password;
 	m->c->retryInterval = options->retryInterval;
 
-	if ((rc = MQTTClient_connectURIVersion(handle, options, serverURI, 4	, start, millisecsTimeout)) != MQTTCLIENT_SUCCESS)
-		rc = MQTTClient_connectURIVersion(handle, options, serverURI, 3, start, millisecsTimeout);
+	if ((rc = MQTTClient_connectURIVersion(handle, options, serverURI, 3, start, millisecsTimeout)) != MQTTCLIENT_SUCCESS)
+		rc = MQTTClient_connectURIVersion(handle, options, serverURI, 4, start, millisecsTimeout);
 
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -1213,7 +1214,7 @@ int MQTTClient_subscribeMany(MQTTClient handle, int count, char* const* topic, i
 	List* qoss = ListInitialize();
 	int i = 0;
 	int rc = MQTTCLIENT_FAILURE;
-	int msgid = 0;
+	uint64_t msgid = 0;
 
 	FUNC_ENTRY;
 	Thread_lock_mutex(mqttclient_mutex);
@@ -1338,7 +1339,7 @@ int MQTTClient_presence(MQTTClient handle, char* topic)
 {
 	char temp[100];
 	sprintf(temp, "%s/p", topic);
-	return MQTTClient_subscribe(handle, temp);
+	return MQTTClient_subscribe(handle, temp, DEFAULT_QOS);
 }
 
 
@@ -1348,7 +1349,7 @@ int MQTTClient_unsubscribeMany(MQTTClient handle, int count, char* const* topic)
 	List* topics = ListInitialize();
 	int i = 0;
 	int rc = SOCKET_ERROR;
-	int msgid = 0;
+	int64_t msgid = 0;
 
 	FUNC_ENTRY;
 	Thread_lock_mutex(mqttclient_mutex);
@@ -1436,7 +1437,7 @@ int MQTTClient_unpresence(MQTTClient handle, char* topic)
 }
 
 
-int MQTTClient_publish(MQTTClient handle, const char* topicName, int payloadlen, void* payload,
+int MQTTClient_dopublish(MQTTClient handle, const char* topicName, int payloadlen, void* payload,
 							 int qos, int retained, MQTTClient_deliveryToken* deliveryToken)
 {
 	int rc = MQTTCLIENT_SUCCESS;
@@ -1444,7 +1445,7 @@ int MQTTClient_publish(MQTTClient handle, const char* topicName, int payloadlen,
 	Messages* msg = NULL;
 	Publish* p = NULL;
 	int blocked = 0;
-	int msgid = 0;
+	uint64_t msgid = 0;
 
 	FUNC_ENTRY;
 	Thread_lock_mutex(mqttclient_mutex);
@@ -1529,7 +1530,7 @@ exit:
 	return rc;
 }
 
-int MQTTClient_publish(MQTTClient handle, char* topicName, int payloadlen, void* payload)
+int MQTTClient_publish(MQTTClient handle, const char* topicName, int payloadlen, void* payload)
 {
 	int qos = DEFAULT_QOS;
 	int retained = DEFAULT_RETAINED;

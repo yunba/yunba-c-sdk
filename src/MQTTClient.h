@@ -14,6 +14,7 @@
  *    Ian Craggs - initial API and implementation and/or initial documentation
  *    Ian Craggs, Allan Stockdill-Mander - SSL updates
  *    Ian Craggs - multiple server connection support
+ *    Ian Craggs - MQTT 3.1.1 support
  *******************************************************************************/
 
 /**

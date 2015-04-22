@@ -13,6 +13,7 @@
  * Contributors:
  *    Ian Craggs - initial API and implementation and/or initial documentation
  *    Ian Craggs, Allan Stockdill-Mander - SSL updates
+ *    Ian Craggs - fix for buffer overflow in addressPort bug #433290
  *    Ian Craggs - MQTT 3.1.1 support
  *    Rong Xiang, Ian Craggs - C++ compatibility
  *******************************************************************************/

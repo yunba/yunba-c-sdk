@@ -50,6 +50,7 @@ int MQTTPacket_send_connect(Clients* client, int MQTTVersion)
 	FUNC_ENTRY;
 	packet.header.byte = 0;
 	packet.header.bits.type = CONNECT;
+	packet.header.bits.qos = 1;
 
 	len = ((MQTTVersion == 3) ? 12 : 10) + strlen(client->clientID)+2;
 	if (client->will)
@@ -90,10 +91,11 @@ int MQTTPacket_send_connect(Clients* client, int MQTTVersion)
 	if (client->password)
 		writeUTF(&ptr, client->password);
 
-	rc = MQTTPacket_send(&client->net, packet.header, buf, len);
+	rc = MQTTPacket_send(&client->net, packet.header, buf, len, 1);
 	Log(LOG_PROTOCOL, 0, NULL, client->net.socket, client->clientID, client->cleansession, rc);
 exit:
-	free(buf);
+	if (rc != TCPSOCKET_INTERRUPTED)
+		free(buf);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -179,9 +181,10 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, uint64_t msgid, int dup,
 		writeUTF(&ptr, (char*)(elem->content));
 		writeChar(&ptr, *(int*)(qosElem->content));
 	}
-	rc = MQTTPacket_send(net, header, data, datalen);
+	rc = MQTTPacket_send(net, header, data, datalen, 1);
 	Log(LOG_PROTOCOL, 22, NULL, net->socket, clientID, msgid, rc);
-	free(data);
+	if (rc != TCPSOCKET_INTERRUPTED)
+		free(data);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -247,9 +250,10 @@ int MQTTPacket_send_unsubscribe(List* topics, uint64_t msgid, int dup, networkHa
 	elem = NULL;
 	while (ListNextElement(topics, &elem))
 		writeUTF(&ptr, (char*)(elem->content));
-	rc = MQTTPacket_send(net, header, data, datalen);
+	rc = MQTTPacket_send(net, header, data, datalen, 1);
 	Log(LOG_PROTOCOL, 25, NULL, net->socket, clientID, msgid, rc);
-	free(data);
+	if (rc != TCPSOCKET_INTERRUPTED)
+		free(data);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }

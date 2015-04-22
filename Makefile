@@ -19,7 +19,7 @@
 #*******************************************************************************/
 
 # Note: on OS X you should install XCode and the associated command-line tools
-DESTDIR = ./__install
+
 SHELL = /bin/sh
 .PHONY: clean, mkdir, install, uninstall, html
 
@@ -72,28 +72,26 @@ HEADERS = $(srcdir)/*.h
 HEADERS_C = $(filter-out $(srcdir)/MQTTAsync.h, $(HEADERS))
 HEADERS_A = $(HEADERS)
 
-#SAMPLE_FILES_C = stdinpub stdoutsub pubsync pubasync subasync stdinpub_present stdoutsub_demo
-SAMPLE_FILES_C = stdinpub stdoutsub stdinpub_present stdoutsub_demo
+SAMPLE_FILES_C = stdinpub stdoutsub stdinpub_present
 SYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_C}}
 
-SAMPLE_FILES_A = stdoutsuba MQTTAsync_subscribe MQTTAsync_publish
-ASYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_A}}
+#SAMPLE_FILES_A = stdoutsuba
+#ASYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_A}}
 
-#TEST_FILES_C = test1
+#TEST_FILES_C = test1 sync_client_test test_mqtt4sync
 #SYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_C}}
 
 #TEST_FILES_CS = test3
 #SYNC_SSL_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_CS}}
 
-#TEST_FILES_A = test4
+#TEST_FILES_A = test4 test_mqtt4async
 #ASYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_A}}
 
 #TEST_FILES_AS = test5
 #ASYNC_SSL_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_AS}}
 
 # The names of the four different libraries to be built
-#MQTTLIB_C = paho-mqtt3c
-MQTTLIB_C = yunba
+MQTTLIB_C = paho-mqtt3c
 MQTTLIB_CS = paho-mqtt3cs
 MQTTLIB_A = paho-mqtt3a
 MQTTLIB_AS = paho-mqtt3as
@@ -118,13 +116,13 @@ MQTTLIB_AS_TARGET = ${blddir}/lib${MQTTLIB_AS}.so.${VERSION}
 MQTTVERSION_TARGET = ${blddir}/MQTTVersion
 
 CCFLAGS_SO = -g -fPIC $(CFLAGS) -Os -Wall -fvisibility=hidden
-FLAGS_EXE = $(LDFLAGS) -I ${srcdir} -lpthread -L ${blddir}
+FLAGS_EXE = $(LDFLAGS) -I ${srcdir} -lpthread -lm -L ${blddir}
 FLAGS_EXES = $(LDFLAGS) -I ${srcdir} ${START_GROUP} -lpthread -lssl -lcrypto ${END_GROUP} -L ${blddir}
 
-LDFLAGS_C = $(LDFLAGS) -shared -Wl,-init,$(MQTTCLIENT_INIT) -lpthread
-LDFLAGS_CS = $(LDFLAGS) -shared $(START_GROUP) -lpthread $(EXTRA_LIB) -lssl -lcrypto $(END_GROUP) -Wl,-init,$(MQTTCLIENT_INIT)
-LDFLAGS_A = $(LDFLAGS) -shared -Wl,-init,$(MQTTASYNC_INIT) -lpthread
-LDFLAGS_AS = $(LDFLAGS) -shared $(START_GROUP) -lpthread $(EXTRA_LIB) -lssl -lcrypto $(END_GROUP) -Wl,-init,$(MQTTASYNC_INIT)
+LDFLAGS_C = $(LDFLAGS) -shared -Wl,-init,$(MQTTCLIENT_INIT) -lpthread -lm
+LDFLAGS_CS = $(LDFLAGS) -shared $(START_GROUP) -lpthread -lm $(EXTRA_LIB) -lssl -lcrypto $(END_GROUP) -Wl,-init,$(MQTTCLIENT_INIT)
+LDFLAGS_A = $(LDFLAGS) -shared -Wl,-init,$(MQTTASYNC_INIT) -lpthread -lm 
+LDFLAGS_AS = $(LDFLAGS) -shared $(START_GROUP) -lpthread -lm $(EXTRA_LIB) -lssl -lcrypto $(END_GROUP) -Wl,-init,$(MQTTASYNC_INIT)
 
 ifeq ($(OSTYPE),Linux)
 
@@ -173,6 +171,23 @@ mkdir:
 	-mkdir -p ${blddir}/test
 	echo OSTYPE is $(OSTYPE)
 
+${SYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_C_TARGET)
+	${CC} -g -o $@ $< -l${MQTTLIB_C} ${FLAGS_EXE}
+
+${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_CS_TARGET)
+	${CC} -g -o $@ $< -l${MQTTLIB_CS} ${FLAGS_EXES}
+
+${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_CS_TARGET)
+	${CC} -g -o $@ $< -l${MQTTLIB_A} ${FLAGS_EXE}
+
+${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_CS_TARGET) $(MQTTLIB_AS_TARGET)
+	${CC} -g -o $@ $< -l${MQTTLIB_AS} ${FLAGS_EXES}
+
+${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c $(MQTTLIB_C_TARGET)
+	${CC} -o $@ $< -l${MQTTLIB_C} ${FLAGS_EXE}
+
+${ASYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c $(MQTTLIB_A_TARGET)
+	${CC} -o $@ $< -l${MQTTLIB_A} ${FLAGS_EXE}
 
 ${MQTTLIB_C_TARGET}: ${SOURCE_FILES_C} ${HEADERS_C}
 	$(SED_COMMAND) $(srcdir)/MQTTClient.c

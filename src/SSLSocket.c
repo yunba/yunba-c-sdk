@@ -737,9 +737,11 @@ int SSLSocket_putdatas(SSL* ssl, int socket, char* buf0, size_t buf0len, int cou
 		if (sslerror == SSL_ERROR_WANT_WRITE)
 		{
 			int* sockmem = (int*)malloc(sizeof(int));
+			int free = 1;
+
 			Log(TRACE_MIN, -1, "Partial write: incomplete write of %d bytes on SSL socket %d",
 				iovec.iov_len, socket);
-			SocketBuffer_pendingWrite(socket, ssl, 1, &iovec, iovec.iov_len, 0);
+			SocketBuffer_pendingWrite(socket, ssl, 1, &iovec, &free, iovec.iov_len, 0);
 			*sockmem = socket;
 			ListAppend(s.write_pending, sockmem, sizeof(int));
 			FD_SET(socket, &(s.pending_wset));
@@ -750,7 +752,7 @@ int SSLSocket_putdatas(SSL* ssl, int socket, char* buf0, size_t buf0len, int cou
 	}
 	SSL_unlock_mutex(&sslCoreMutex);
 
-	if (iovec.iov_base)
+	if (rc != TCPSOCKET_INTERRUPTED)
 		free(iovec.iov_base);
 	else
 	{
@@ -806,12 +808,6 @@ int SSLSocket_continueWrite(pending_writes* pw)
 	{
 		/* topic and payload buffers are freed elsewhere, when all references to them have been removed */
 		free(pw->iovecs[0].iov_base);
-		if (pw->count > 1)
-		{
-			free(pw->iovecs[1].iov_base);
-			if (pw->count == 5)
-				free(pw->iovecs[3].iov_base);
-		}
 		Log(TRACE_MIN, -1, "SSL continueWrite: partial write now complete for socket %d", pw->socket);
 		rc = 1;
 	}
