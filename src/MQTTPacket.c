@@ -750,7 +750,7 @@ int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandle
 
 		char* bufs[4] = {buf, cmd, parm_len, (char *)pack->ext_payload.ext_buf};
 		size_t lens[4] = {8, 1, 2, strlen((char *)pack->ext_payload.ext_buf)};
-		int frees[4] = {1, 1, 1, 1};
+		int frees[4] = {1, 0, 0, 0};
 
 		writeInt64(&ptr, pack->msgId);
 		ptr = parm_len;
@@ -765,7 +765,7 @@ int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandle
 		char *ptr = parm_len;
 		char* bufs[3] = {cmd, parm_len, (char *)pack->ext_payload.ext_buf};
 		int lens[3] = {1, 2, strlen((char *)pack->ext_payload.ext_buf)};
-		int frees[4] = {1, 0, 1, 0};
+		int frees[3] = {0, 0, 0};
 		writeInt(&ptr, lens[2]);
 		rc = MQTTPacket_sends(net, header, 3, bufs, lens, frees);
 	}

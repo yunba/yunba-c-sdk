@@ -97,7 +97,6 @@ cd build/output/samples/
 
 ./stdinpub_present <topic> --appkey <appkey> --deviceid <device-id>
 
-
 ## 第三方库
 
 该sdk中使用第三方的cJSON。src/cJSON.c src/cJSON.h。
@@ -108,3 +107,15 @@ STDOUT_LOG:
 export MQTT_C_CLIENT_TRACE=stdout
 export MQTT_C_CLIENT_TRACE=ON
 export MQTT_C_CLIENT_TRACE_LEVEL=TRACE_PROTOCOL
+
+##　编译环境
+
+在以下环境编译测试通过。
+
+ubuntu 12.04, gcc version 4.6.4.
+
+mac, Apple LLVM version 6.1.0
+
+##　注意
+
+该sdk 不支持标准的mqtt, mqtt v3.1.1
