@@ -89,6 +89,7 @@ There is much more information available via the [MQTT community site](http://mq
 
 
 SAMPLE:
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/build/output
 make
 cd build/output/samples/
 
