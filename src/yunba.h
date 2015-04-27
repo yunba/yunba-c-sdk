@@ -120,10 +120,18 @@ typedef struct {
 #define MQTT_BAD_SUBSCRIBE 0x80
 
 
-typedef struct {// no limit of length in MQTT protocol (<256M)
+typedef struct {
+	/* in MQTT v3.1,If the Client ID contains more than 23 characters, the server responds to
+	 * the CONNECT message with a CONNACK return code 2: Identifier Rejected.
+	 * */
 	char client_id[200];
+	/* in MQTT v3.1, it is recommended that passwords are kept to 12 characters or fewer, but
+	 * it is not required. */
 	char username[200];
+	/*in MQTT v3.1, It is recommended that passwords are kept to 12 characters or fewer, but
+	 * it is not required. */
 	char password[200];
+	/* user define it, and change size of device id. */
 	char device_id[200];
 } REG_info;
 
