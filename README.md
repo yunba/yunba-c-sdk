@@ -88,7 +88,8 @@ General questions about the MQTT protocol are discussed in the [MQTT Google Grou
 There is much more information available via the [MQTT community site](http://mqtt.org).
 
 
-SAMPLE:
+编译:
+
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/build/output
 make
 cd build/output/samples/
@@ -104,8 +105,9 @@ cd build/output/samples/
 使用时请留意。
 
 STDOUT_LOG:
+
 export MQTT_C_CLIENT_TRACE=stdout
-export MQTT_C_CLIENT_TRACE=ON
+
 export MQTT_C_CLIENT_TRACE_LEVEL=TRACE_PROTOCOL
 
 ##　编译环境
