@@ -88,15 +88,19 @@ General questions about the MQTT protocol are discussed in the [MQTT Google Grou
 There is much more information available via the [MQTT community site](http://mqtt.org).
 
 
-编译:
+## 编译:
 
+```
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/build/output
 make
 cd build/output/samples/
+```
 
 ## 例子
 
+```
 ./stdinpub_present <topic> --appkey <appkey> --deviceid <device-id>
+```
 
 ## 第三方库
 
@@ -106,9 +110,11 @@ cd build/output/samples/
 
 STDOUT_LOG:
 
+```
 export MQTT_C_CLIENT_TRACE=stdout
 
 export MQTT_C_CLIENT_TRACE_LEVEL=TRACE_PROTOCOL
+```
 
 ##　编译环境
 
