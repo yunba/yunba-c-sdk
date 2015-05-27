@@ -1633,6 +1633,15 @@ int MQTTClient_publish2(MQTTClient handle,
 	return MQTTClient_get(handle, PUBLISH2, p-pub_buf, pub_buf, DEFAULT_QOS, DEFAULT_RETAINED, NULL);
 }
 
+int MQTTClient_publish2_to_alias(MQTTClient handle,
+				const char* alias, int payloadlen, void* payload, cJSON *data)
+{
+	char buf[150];
+
+	sprintf(buf, ",yta/%s", alias);
+	return MQTTClient_publish2(handle, buf, payloadlen, payload, data);
+}
+
 
 int MQTTClient_publishMessage(MQTTClient handle, const char* topicName, MQTTClient_message* message,
 															 MQTTClient_deliveryToken* deliveryToken)
