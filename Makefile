@@ -184,7 +184,7 @@ ${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_CS_TARGET)
 	${CC} -g -o $@ $< -l${MQTTLIB_AS} ${FLAGS_EXES}
 
 ${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c $(MQTTLIB_C_TARGET)
-	${CC} -o $@ $< -l${MQTTLIB_C} ${FLAGS_EXE}
+	${CC} -o $@  ${srcdir}/cJSON.c $< -l${MQTTLIB_C} ${FLAGS_EXE}
 
 ${ASYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c $(MQTTLIB_A_TARGET)
 	${CC} -o $@ $< -l${MQTTLIB_A} ${FLAGS_EXE}

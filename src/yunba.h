@@ -23,9 +23,23 @@ typedef enum {
 	GET_TOPIC_ACK,
 	GET_ALIAS_LIST,
 	GET_ALIAS_LIST_ACK,
+	PUBLISH2,
+	PUBLISH2_ACK,
 	GET_STATUS = 9,
 	GET_STATUS_ACK
 } EXTED_CMD;
+
+enum {
+	PUBLISH2_TLV_TOPIC,
+	PUBLISH2_TLV_PAYLOAD,
+	PUBLISH2_TLV_PLAT,
+	PUBLISH2_TLV_TTL,
+	PUBLISH2_TLV_TIME_DELAY,
+	PUBLISH2_TLV_LOCATION,
+	PUBLISH2_TLV_QOS,
+	PUBLISH2_TLV_APN_JSON,
+	PUBLISH2_TLV_MAX_NUM
+};
 
 /**
  * Return code: No error. Indicates successful completion of an MQTT client
@@ -689,6 +703,9 @@ DLLExport int MQTTClient_unsubscribe_many(MQTTClient handle, int count, char** t
 DLLExport int MQTTClient_publish(MQTTClient handle, const char* topicName, int data_len, void* data);
 
 DLLExport int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data);
+
+DLLExport int MQTTClient_publish2(MQTTClient handle,
+				const char* topicName, int payloadlen, void* payload, cJSON *data);
 
 DLLExport int MQTTClient_publish_to_alias(MQTTClient handle, char* alias, int data_len, void* data);
 

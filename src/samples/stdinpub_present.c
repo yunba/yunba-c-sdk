@@ -236,8 +236,8 @@ int main(int argc, char** argv)
 		MQTTClient_set_alias(client, opts.alias);
 	}
 	//MQTTClient_presence(client, topic);
-
-	int ret = MQTTClient_get_aliaslist(client, topic);
+	int ret;
+	ret = MQTTClient_get_aliaslist(client, topic);
 	printf("get aliaslist:%i, topic:%s\n", ret, topic);
 	ret = MQTTClient_get_topic(client, "band1111");
 	printf("get topic:%i\n", ret);
@@ -246,6 +246,22 @@ int main(int argc, char** argv)
 
 	ret = MQTTClient_report(client, "domytest", "abc");
 	printf("report status:%i\n", ret);
+
+	sleep(7);
+	cJSON *apn_json, *aps;
+	cJSON *Opt = cJSON_CreateObject();
+	cJSON_AddStringToObject(Opt,"time_to_live",  "120");
+	cJSON_AddStringToObject(Opt,"time_delay",  "1100");
+	cJSON_AddStringToObject(Opt,"apn_json",  "{aps:{\"alert\":\"hello\"}}");
+#if 0
+	cJSON_AddItemToObject(Opt,"apn_json",  apn_json=cJSON_CreateObject());
+	cJSON_AddItemToObject(apn_json,"aps",  aps=cJSON_CreateObject());
+	cJSON_AddStringToObject(aps,"alert",  "hello");
+	cJSON_AddStringToObject(aps,"sound",  "bingbong.aiff");
+#endif
+	ret = MQTTClient_publish2(client, topic, strlen("test"), "test", Opt);
+	cJSON_Delete(Opt);
+	printf("publish2 status:%i\n", ret);
 	
 	while (!toStop)
 	{

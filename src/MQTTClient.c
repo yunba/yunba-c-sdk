@@ -1566,6 +1566,73 @@ int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data)
 }
 
 
+int MQTTClient_publish2(MQTTClient handle,
+		const char* topicName, int payloadlen, void* payload, cJSON *data)
+{
+	const char *key[PUBLISH2_TLV_MAX_NUM] =
+	{"topic", "payload", "platform", "time_to_live", "time_delay", "location", "qos", "apn_json"};
+	uint8_t *p;
+	uint8_t pub_buf[1024];
+	uint16_t len, i = 0;
+
+	p = pub_buf;
+
+	*p++ = (uint8_t)PUBLISH2_TLV_PAYLOAD;
+	*p++ = (uint8_t)((payloadlen >> 8) & 0xff);
+	*p++ = (uint8_t)(payloadlen & 0xff);
+	memcpy(p, payload, payloadlen);
+	p += payloadlen;
+
+	len = strlen(topicName);
+	*p++ = (uint8_t)PUBLISH2_TLV_TOPIC;
+	*p++ = (uint8_t)((len >> 8) & 0xff);
+	*p++ = (uint8_t)(len & 0xff);
+	memcpy(p, topicName, len);
+	p += len;
+
+	if (data) {
+		uint8_t j = 0;
+		int size = cJSON_GetArraySize(data);
+		cJSON * test = cJSON_GetArrayItem(data, 0);
+		for (j = 0; j < size; j++) {
+			cJSON * test = cJSON_GetArrayItem(data, j);
+			uint8_t i = 0;
+			for (i = 0; i < PUBLISH2_TLV_MAX_NUM; i++) {
+				if (strcmp(test->string, key[i]) == 0) {
+					switch (i) {
+					case PUBLISH2_TLV_TTL:
+					case PUBLISH2_TLV_TIME_DELAY:
+					case PUBLISH2_TLV_QOS:
+					{
+						*p++ = (uint8_t)i;
+						*p++ = 0;
+						*p++ = 2;
+						memcpy(p, test->valuestring, 2);
+						p += 2;
+						break;
+					}
+
+					case PUBLISH2_TLV_APN_JSON:
+					{
+						len = strlen(test->valuestring);
+						*p++ = (uint8_t)PUBLISH2_TLV_APN_JSON;
+						*p++ = (uint8_t)((len >> 8) & 0xff);
+						*p++ = (uint8_t)(len & 0xff);
+						memcpy(p, test->valuestring, len);
+						p += len;
+						break;
+					}
+
+					default:
+						break;
+					}
+				}
+			}
+		}
+	}
+	return MQTTClient_get(handle, PUBLISH2, p-pub_buf, pub_buf, DEFAULT_QOS, DEFAULT_RETAINED, NULL);
+}
+
 
 int MQTTClient_publishMessage(MQTTClient handle, const char* topicName, MQTTClient_message* message,
 															 MQTTClient_deliveryToken* deliveryToken)
