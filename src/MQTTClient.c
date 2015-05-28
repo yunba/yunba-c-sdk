@@ -1593,7 +1593,6 @@ int MQTTClient_publish2(MQTTClient handle,
 	if (data) {
 		uint8_t j = 0;
 		int size = cJSON_GetArraySize(data);
-		cJSON * test = cJSON_GetArrayItem(data, 0);
 		for (j = 0; j < size; j++) {
 			cJSON * test = cJSON_GetArrayItem(data, j);
 			uint8_t i = 0;
