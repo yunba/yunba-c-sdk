@@ -252,7 +252,7 @@ int main(int argc, char** argv)
 	cJSON *Opt = cJSON_CreateObject();
 	cJSON_AddStringToObject(Opt,"time_to_live",  "120");
 	cJSON_AddStringToObject(Opt,"time_delay",  "1100");
-	cJSON_AddStringToObject(Opt,"apn_json",  "{aps:{\"alert\":\"hello\"}}");
+	cJSON_AddStringToObject(Opt,"apn_json",  "{\"aps\":{\"alert\":\"FENCE alarm\", \"sound\":\"alarm.mp3\"}}");
 #if 0
 	cJSON_AddItemToObject(Opt,"apn_json",  apn_json=cJSON_CreateObject());
 	cJSON_AddItemToObject(apn_json,"aps",  aps=cJSON_CreateObject());
