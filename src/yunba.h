@@ -26,7 +26,13 @@ typedef enum {
 	PUBLISH2,
 	PUBLISH2_ACK,
 	GET_STATUS = 9,
-	GET_STATUS_ACK
+	GET_STATUS_ACK,
+	GET_TOPIC_LIST2 = 13,
+	GET_TOPIC_LIST2_ACK,
+	GET_ALIASLIST2,
+	GET_ALIASLIST2_ACK,
+	GET_STATUS2 = 19,
+	GET_STATUS2_ACK = 20
 } EXTED_CMD;
 
 enum {
@@ -718,11 +724,17 @@ DLLExport int MQTTClient_set_alias(MQTTClient handle, char* alias);
 
 DLLExport int MQTTClient_get_alias(MQTTClient handle, char* parameter);
 
+DLLExport int MQTTClient_get_aliaslist2(MQTTClient handle, char* parameter);
+
 DLLExport int MQTTClient_get_aliaslist(MQTTClient handle, char* parameter);
 
 DLLExport int MQTTClient_get_topic(MQTTClient handle, char* parameter);
 
+DLLExport int MQTTClient_get_topiclist2(MQTTClient handle, char* parameter);
+
 DLLExport int MQTTClient_get_status(MQTTClient handle, char* parameter);
+
+DLLExport int MQTTClient_get_status2(MQTTClient handle, char* parameter);
 
 DLLExport int MQTTClient_set_broker(MQTTClient *handle, char* broker);
 

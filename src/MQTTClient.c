@@ -1770,13 +1770,13 @@ int MQTTClient_set_alias(MQTTClient handle, char* alias)
 
 int MQTTClient_get_aliaslist(MQTTClient handle, char* parameter)
 {
-#if 0
-	const char *topic_name=",yaliget";
-	return MQTTClient_publish(handle, topic_name, strlen(alias), alias, 0, 0, NULL);
-#endif
 	return MQTTClient_get(handle, GET_ALIAS_LIST, strlen(parameter), parameter, 1, 0, NULL);
 }
 
+int MQTTClient_get_aliaslist2(MQTTClient handle, char* parameter)
+{
+	return MQTTClient_get(handle, GET_ALIASLIST2, strlen(parameter), parameter, 1, 0, NULL);
+}
 
 int MQTTClient_get_alias(MQTTClient handle, char* parameter)
 {
@@ -1789,9 +1789,20 @@ int MQTTClient_get_topic(MQTTClient handle, char* parameter)
 }
 
 
+int MQTTClient_get_topiclist2(MQTTClient handle, char* parameter)
+{
+	return MQTTClient_get(handle, GET_TOPIC_LIST2, strlen(parameter), parameter, 1, 0, NULL);
+}
+
+
 int MQTTClient_get_status(MQTTClient handle, char* parameter)
 {
 	return MQTTClient_get(handle, GET_STATUS, strlen(parameter), parameter, 1, 0, NULL);
+}
+
+int MQTTClient_get_status2(MQTTClient handle, char* parameter)
+{
+	return MQTTClient_get(handle, GET_STATUS2, strlen(parameter), parameter, 1, 0, NULL);
 }
 
 int MQTTClient_set_broker(MQTTClient *handle, char* broker)
