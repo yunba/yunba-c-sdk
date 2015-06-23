@@ -711,10 +711,10 @@ DLLExport int MQTTClient_publish(MQTTClient handle, const char* topicName, int d
 DLLExport int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data);
 
 DLLExport int MQTTClient_publish2(MQTTClient handle,
-				const char* topicName, int payloadlen, void* payload, cJSON *data);
+				const char* topicName, int payloadlen, void* payload, cJSON *opt);
 
 DLLExport int MQTTClient_publish2_to_alias(MQTTClient handle,
-				const char* alias, int payloadlen, void* payload, cJSON *data);
+				const char* alias, int payloadlen, void* payload, cJSON *opt);
 
 DLLExport int MQTTClient_publish_to_alias(MQTTClient handle, char* alias, int data_len, void* data);
 

@@ -1567,7 +1567,7 @@ int MQTTClient_publish_json(MQTTClient handle, char* topicName, cJSON *data)
 
 
 int MQTTClient_publish2(MQTTClient handle,
-		const char* topicName, int payloadlen, void* payload, cJSON *data)
+		const char* topicName, int payloadlen, void* payload, cJSON *opt)
 {
 	const char *key[PUBLISH2_TLV_MAX_NUM] =
 	{"topic", "payload", "platform", "time_to_live", "time_delay", "location", "qos", "apn_json"};
@@ -1633,7 +1633,7 @@ int MQTTClient_publish2(MQTTClient handle,
 }
 
 int MQTTClient_publish2_to_alias(MQTTClient handle,
-				const char* alias, int payloadlen, void* payload, cJSON *data)
+				const char* alias, int payloadlen, void* payload, cJSON *opt)
 {
 	char buf[150];
 
