@@ -1590,11 +1590,11 @@ int MQTTClient_publish2(MQTTClient handle,
 	memcpy(p, topicName, len);
 	p += len;
 
-	if (data) {
+	if (opt) {
 		uint8_t j = 0;
-		int size = cJSON_GetArraySize(data);
+		int size = cJSON_GetArraySize(opt);
 		for (j = 0; j < size; j++) {
-			cJSON * test = cJSON_GetArrayItem(data, j);
+			cJSON * test = cJSON_GetArrayItem(opt, j);
 			uint8_t i = 0;
 			for (i = 0; i < PUBLISH2_TLV_MAX_NUM; i++) {
 				if (strcmp(test->string, key[i]) == 0) {
@@ -1638,7 +1638,7 @@ int MQTTClient_publish2_to_alias(MQTTClient handle,
 	char buf[150];
 
 	sprintf(buf, ",yta/%s", alias);
-	return MQTTClient_publish2(handle, buf, payloadlen, payload, data);
+	return MQTTClient_publish2(handle, buf, payloadlen, payload, opt);
 }
 
 
