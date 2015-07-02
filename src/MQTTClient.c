@@ -1886,8 +1886,8 @@ int MQTTClient_get_host(char *appkey, char* url)
 	int ret = -1;
 	char json_data[1024];
 
-	sprintf(json_data, "{\"a\":%s,\"n\":%s,\"v\":%s,\"o\":%s}",
-			appkey, /*${networktype}*/"1", "v1.0.0", /*${NetworkOperator}*/"1");
+	sprintf(json_data, "{\"a\":\"%s\",\"n\":\"%s\",\"v\":\"%s\",\"o\":\"%s\"}",
+                        appkey, /*${networktype}*/"1", "v1.0.0", /*${NetworkOperator}*/"1");
 
 	ret = http_post_json(json_data, "tick.yunba.io", 9999, "/", get_broker_cb);
 	if (ret < 0)
