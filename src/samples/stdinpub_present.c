@@ -100,6 +100,7 @@ struct
 	char *appkey;
 	char *deviceid;
 	char *alias;
+	char *authkey;
 //	char* username;
 //	char* password;
 //	char* host;
@@ -210,6 +211,18 @@ int main(int argc, char** argv)
 
 //	MQTTClient_set_broker(&client, "localhost");
 
+	if (opts.authkey != NULL) {
+		printf("set authkey\r\n");
+		int status;
+		rc = MQTTClient_set_authkey(my_reg_info.client_id, opts.appkey, opts.authkey, &status);
+		if (rc >= 0)
+			printf("set authkey result: status:%i\r\n", status);
+		char auth[80];
+		rc = MQTTClient_get_authkey(my_reg_info.client_id, opts.appkey, auth, &status);
+		if (rc >= 0)
+			printf("get authkey result: status:%i, authkey:%s\r\n", status, auth);
+	}
+
 	MQTTClient_get_broker(&client, broker);
 	printf("get broker:%s\n", broker);
 
@@ -220,7 +233,7 @@ int main(int argc, char** argv)
 
 	conn_opts.keepAliveInterval = 300;
 	conn_opts.reliable = 0;
-	conn_opts.cleansession = 1;
+	conn_opts.cleansession = 0;
 	conn_opts.username = my_reg_info.username;
 	conn_opts.password = my_reg_info.password;
 	
@@ -280,6 +293,7 @@ int main(int argc, char** argv)
 				
 		if (opts.verbose)
 				printf("Publishing data of length %d\n", data_len);
+
 		rc = MQTTClient_publish(client, topic, data_len, buffer);
 		if (rc != 0)
 		{
@@ -361,6 +375,13 @@ void getopts(int argc, char** argv)
 		{
 			if (++count < argc)
 				opts.alias = argv[count];
+			else
+				usage();
+		}
+		else if (strcmp(argv[count], "--authkey") == 0)
+		{
+			if (++count < argc)
+				opts.authkey = argv[count];
 			else
 				usage();
 		}

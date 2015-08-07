@@ -1908,12 +1908,12 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, C
     sprintf(temp, "Host: %s:%d", hostname, port),
     strcat(buf, temp);
     strcat(buf, "\r\n");
-    strcat(buf, "Accept: application/json\r\n");
+    strcat(buf, "Accept: */*\r\n");
     strcat(buf, "Content-Type: application/json\r\n");
     strcat(buf, "Content-Length: ");
     sprintf(temp, "%d", strlen(json_data)),
     strcat(buf, temp);
-    strcat(buf, "\n\n");
+    strcat(buf, "\r\n\r\n");
     strcat(buf, json_data);
 
     //TODO:　可能没写完？
@@ -2040,6 +2040,80 @@ int MQTTClient_get_host(char *appkey, char* url)
 		return -1;
 
 	strcpy(url, url_host);
+	return 0;
+}
+
+
+static int retstatus;
+static size_t get_ret_status(const char *json_data)
+{
+	int ret = 0;
+	char buf[500];
+	memset(buf, 0, sizeof(buf));
+	memcpy(buf, json_data, strlen(json_data));
+	cJSON *root = cJSON_Parse(buf);
+	if (root) {
+		int ret_size = cJSON_GetArraySize(root);
+		if (ret_size >= 1)
+			retstatus =  cJSON_GetObjectItem(root,"status")->valueint;
+		else
+		        ret = -1;
+		cJSON_Delete(root);
+	}
+	return ret;
+}
+
+int MQTTClient_set_authkey(char *cid, char *appkey, char* authkey, int *ret_status)
+{
+	int ret = -1;
+	char json_data[1024];
+
+	sprintf(json_data, "{\"cmd\":\"authkey_set\",\"cid\":\"%s\",\"appkey\":\"%s\",\"authkey\":\"%s\"}",
+			cid, appkey, authkey);
+
+	ret = http_post_json(json_data, "abj-redismsg-4.yunba.io", 8060, "/", get_ret_status);
+	if (ret < 0)
+		return -1;
+	*ret_status = retstatus;
+	return 0;
+}
+
+static char auth_key[80];
+static size_t get_authkey_status(const char *json_data)
+{
+	int ret = 0;
+	char buf[500];
+	memset(buf, 0, sizeof(buf));
+	memset(auth_key, 0, sizeof(auth_key)),
+	memcpy(buf, json_data, strlen(json_data));
+	cJSON *root = cJSON_Parse(buf);
+	if (root) {
+		int ret_size = cJSON_GetArraySize(root);
+		if (ret_size >= 1) {
+			retstatus =  cJSON_GetObjectItem(root,"status")->valueint;
+			if (retstatus == 0)
+				strcpy(auth_key, cJSON_GetObjectItem(root,"authkey")->valuestring);
+		}
+		else
+			ret = -1;
+	cJSON_Delete(root);
+	}
+	return ret;
+}
+
+int MQTTClient_get_authkey(char *cid, char *appkey, char* authkey, int *ret_status)
+{
+	int ret = -1;
+	char json_data[1024];
+
+	sprintf(json_data, "{\"cmd\":\"authkey_get\",\"cid\":\"%s\",\"appkey\":\"%s\"}",
+			cid, appkey);
+
+	ret = http_post_json(json_data, "abj-redismsg-4.yunba.io", 8060, "/", get_authkey_status);
+	if (ret < 0)
+		return -1;
+	*ret_status = retstatus;
+	strcpy(authkey, auth_key);
 	return 0;
 }
 
