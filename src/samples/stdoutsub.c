@@ -12,30 +12,30 @@
  *
  * Contributors:
  *    Ian Craggs - initial contribution
- *    Ian Craggs - change delimiter option from char to string
  *******************************************************************************/
-
-/*
  
- stdout subscriber
+ /*
+ stdin publisher
  
  compulsory parameters:
  
-  --topic topic to subscribe to
+  --topic topic to publish on
  
  defaulted parameters:
  
 	--host localhost
 	--port 1883
-	--qos 2
-	--delimiter \n
-	--clientid stdout_subscriber
+	--qos 0
+	--delimiters \n
+	--clientid stdin_publisher
+	--maxdatalen 100
 	
 	--userid none
 	--password none
  
 */
-#include "MQTTClient.h"
+#include "yunba.h"
+//#include "MQTTClient.h"
 #include "MQTTClientPersistence.h"
 
 #include <stdio.h>
@@ -47,9 +47,12 @@
 #include <Windows.h>
 #define sleep Sleep
 #else
-#include <sys/time.h>
+#include <time.h>
 #include <stdlib.h>
 #endif
+
+
+REG_info my_reg_info;
 
 
 volatile int toStop = 0;
@@ -57,26 +60,24 @@ volatile int toStop = 0;
 
 void usage()
 {
-	printf("MQTT stdout subscriber\n");
-	printf("Usage: stdoutsub topicname <options>, where options are:\n");
-	printf("  --host <hostname> (default is localhost)\n");
-	printf("  --port <port> (default is 1883)\n");
-	printf("  --qos <qos> (default is 2)\n");
-	printf("  --delimiter <delim> (default is \\n)\n");
-	printf("  --clientid <clientid> (default is hostname+timestamp)\n");
-	printf("  --username none\n");
-	printf("  --password none\n");
-  printf("  --showtopics <on or off> (default is on if the topic has a wildcard, else off)\n");
+	printf("MQTT stdin publisher\n");
+	printf("Usage: stdinpub topicname <options>, where options are:\n");
+	printf("  --qos <qos> (default is 0)\n");
+	printf("  --retained (default is off)\n");
+	printf("  --delimiter <delim> (default is \\n)");
+	printf("  --maxdatalen 100\n");
+	printf("  --appkey xxxxxxxxxxxxxxxx\n");
+	printf("  --deviceid xxxxxxxxxxxxxxxx\n");
 	exit(-1);
 }
 
 
 void myconnect(MQTTClient* client, MQTTClient_connectOptions* opts)
 {
-	int rc = 0;
-	if ((rc = MQTTClient_connect(*client, opts)) != 0)
+	printf("Connecting\n");
+	if (MQTTClient_connect(*client, opts) != 0)
 	{
-		printf("Failed to connect, return code %d\n", rc);
+		printf("Failed to connect\n");
 		exit(-1);	
 	}
 }
@@ -89,84 +90,230 @@ void cfinish(int sig)
 }
 
 
-struct opts_struct
+struct
 {
-	char* clientid;
-  int nodelimiter;
+//	char* clientid;
 	char* delimiter;
+	int maxdatalen;
 	int qos;
-	char* username;
-	char* password;
-	char* host;
-	char* port;
-  int showtopics;
+	int retained;
+	char *appkey;
+	char *deviceid;
+	char *alias;
+	char *authkey;
+//	char* username;
+//	char* password;
+//	char* host;
+//	char* port;
+  int verbose;
 } opts =
 {
-	"stdout-subscriber", 0, "\n", 2, NULL, NULL, "localhost", "1883", 0
+	"\n", 100, 0, 0, NULL, 0
 };
+
+Presence_msg my_present;
+	MQTTClient client;
+	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
 void getopts(int argc, char** argv);
 
+
+int extendedCmdArrive(void *context, EXTED_CMD cmd, int status, int ret_string_len, char *ret_string)
+{
+	char buf[1024];
+	memset(buf, 0, 1024);
+	memcpy(buf, ret_string, ret_string_len);
+//	printf("%s:%02x,%02x,%02x, %s\n", __func__, cmd, status, ret_string_len, buf);
+
+}
+
+int messageArrived(void* context, char* topicName, int topicLen, MQTTClient_message* m)
+{
+	char action[30];
+	char alias[60];
+	int ret = -1;
+	int i;
+	char* payloadptr;
+
+	my_present.action = action;
+	my_present.alias = alias;
+	ret = get_present_info(topicName, m, &my_present);
+	if (ret == 0)
+		printf("action:%s alias:%s\n", my_present.action, my_present.alias);
+	time_t t;
+	time(&t);
+	printf("Message arrived, date:%s", ctime(&t));
+	printf("     qos: %i\n", m->qos);
+	printf("     messageid: %"PRIu64"\n", m->msgid);
+	printf("     topic: %s\n", topicName);
+	printf("   message: ");
+
+	payloadptr = m->payload;
+	for(i = 0; i < m->payloadlen; i++)
+	{
+		putchar(*payloadptr++);
+	}
+	putchar('\n');
+	MQTTClient_freeMessage(&m);
+	MQTTClient_free(topicName);
+
+	/* not expecting any messages */
+	return 1;
+}
+
+void connectionLost(void *context, char *cause)
+{
+	myconnect(&client, &conn_opts);
+//	printf("%s, %s, %s\r\n", __func__, context, cause);
+
+}
+
 int main(int argc, char** argv)
 {
-	MQTTClient client;
-	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-	char* topic = NULL;
+	//MQTTClient client;
+//	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+	char topic[200] = "";
+	char* buffer = NULL;
 	int rc = 0;
 	char url[100];
-	
+	char broker[100];
+
 	if (argc < 2)
 		usage();
 	
-	topic = argv[1];
+	getopts(argc, argv);
+	
+//	sprintf(url, "%s:%s", opts.host, opts.port);
+//  if (opts.verbose)
+//		printf("URL is %s\n", url);
 
-  if (strchr(topic, '#') || strchr(topic, '+'))
-		opts.showtopics = 1;
-  if (opts.showtopics)
-		printf("topic is %s\n", topic);
+//	char a[200] = "55e6ba684a481fa955f3912e";
+//	char b[200] = "hello";
+	strcpy(topic, argv[1]);
+	//opts.appkey = a;
+	//topic = b;
+	printf("Using topic %s\n", topic);
 
-	getopts(argc, argv);	
-	sprintf(url, "%s:%s", opts.host, opts.port);
+	int res = MQTTClient_setup_with_appkey_and_deviceid(opts.appkey, opts.deviceid, &my_reg_info);
+	if (res < 0) {
+		printf("can't get reg info\n");
+		return 0;
+	}
 
-	rc = MQTTClient_create(&client, url, opts.clientid, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+	printf("Get reg info: client_id:%s,username:%s,password:%s, devide_id:%s\n", my_reg_info.client_id, my_reg_info.username, my_reg_info.password, my_reg_info.device_id);
+
+	res = MQTTClient_get_host(opts.appkey, url);
+	if (res < 0) {
+		printf("can't get host info\n");
+		return 0;
+	}
+	printf("Get url info: %s\n", url);
+
+	rc = MQTTClient_create(&client, url, my_reg_info.client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+	MQTTClient_get_broker(&client, broker);
+	printf("get broker:%s\n", broker);
+
+//	MQTTClient_set_broker(&client, "localhost");
+
+	if (opts.authkey != NULL) {
+		printf("set authkey\r\n");
+		int status;
+		rc = MQTTClient_set_authkey(my_reg_info.client_id, opts.appkey, opts.authkey, &status);
+		if (rc >= 0)
+			printf("set authkey result: status:%i\r\n", status);
+		char auth[80];
+		rc = MQTTClient_get_authkey(my_reg_info.client_id, opts.appkey, auth, &status);
+		if (rc >= 0)
+			printf("get authkey result: status:%i, authkey:%s\r\n", status, auth);
+	}
+
+	MQTTClient_get_broker(&client, broker);
+	printf("get broker:%s\n", broker);
 
 	signal(SIGINT, cfinish);
 	signal(SIGTERM, cfinish);
 
+	rc = MQTTClient_setCallbacks(client, NULL, connectionLost, messageArrived, NULL, extendedCmdArrive);
+
 	conn_opts.keepAliveInterval = 300;
 	conn_opts.reliable = 0;
-	conn_opts.cleansession = 1;
-	conn_opts.username = opts.username;
-	conn_opts.password = opts.password;
+	conn_opts.cleansession = 0;
+	conn_opts.username = my_reg_info.username;
+	conn_opts.password = my_reg_info.password;
 	
 	myconnect(&client, &conn_opts);
-	
-	rc = MQTTClient_subscribe(client, topic, 1);
 
+	buffer = malloc(opts.maxdatalen);
+
+	rc = MQTTClient_subscribe(client, topic, 1);
+	printf("subscribe topic:%s, %i\n", topic, rc);
+
+	if (opts.alias != NULL) {
+		printf("set alias: %s\n", opts.alias);
+		MQTTClient_set_alias(client, opts.alias);
+	}
+	//MQTTClient_presence(client, topic);
+	int ret;
+	ret = MQTTClient_get_aliaslist(client, topic);
+	printf("get aliaslist:%i, topic:%s\n", ret, topic);
+	ret = MQTTClient_get_topic(client, "band1111");
+	printf("get topic:%i\n", ret);
+	ret = MQTTClient_get_status(client, "band1111");
+	printf("get status:%i\n", ret);
+
+	ret = MQTTClient_report(client, "domytest", "abc");
+	printf("report status:%i\n", ret);
+
+	ret = MQTTClient_get_status2(client, "baidu");
+	printf("get status2:%i\n", ret);
+	ret = MQTTClient_get_topiclist2(client, topic);
+	printf("get topic list2:%i\n", ret);
+	ret = MQTTClient_get_aliaslist2(client, topic);
+	printf("get aliaslist2:%i\n", ret);
+	sleep(7);
+	cJSON *apn_json, *aps;
+	cJSON *Opt = cJSON_CreateObject();
+	cJSON_AddStringToObject(Opt,"time_to_live",  "120");
+	cJSON_AddStringToObject(Opt,"time_delay",  "1100");
+	cJSON_AddStringToObject(Opt,"apn_json",  "{\"aps\":{\"alert\":\"FENCE alarm\", \"sound\":\"alarm.mp3\"}}");
+	ret = MQTTClient_publish2(client, topic, strlen("test") + 1, "test", Opt);
+	cJSON_Delete(Opt);
+	printf("publish2 status:%i\n", ret);
+	
 	while (!toStop)
 	{
-		char* topicName = NULL;
-		int topicLen;
-		MQTTClient_message* message = NULL;
+		int data_len = 0;
+		int delim_len = 0;
 		
-		rc = MQTTClient_receive(client, &topicName, &topicLen, &message, 1000);
-		if (message)
+		delim_len = strlen(opts.delimiter);
+		do
 		{
-			if (opts.showtopics)
-				printf("%s\t", topicName);
-      if (opts.nodelimiter)
-				printf("%.*s", message->payloadlen, (char*)message->payload);
-			else
-				printf("%.*s%s", message->payloadlen, (char*)message->payload, opts.delimiter);
-			fflush(stdout);
-			MQTTClient_freeMessage(&message);
-			MQTTClient_free(topicName);
-		}
+			buffer[data_len++] = getchar();
+			if (data_len > delim_len)
+			{
+			//printf("comparing %s %s\n", opts.delimiter, &buffer[data_len - delim_len]);
+			if (strncmp(opts.delimiter, &buffer[data_len - delim_len], delim_len) == 0)
+				break;
+			}
+		} while (data_len < opts.maxdatalen);
+				
+		if (opts.verbose)
+				printf("Publishing data of length %d\n", data_len);
+
+		rc = MQTTClient_publish(client, topic, data_len, buffer);
 		if (rc != 0)
+		{
 			myconnect(&client, &conn_opts);
+			rc = MQTTClient_publish(client, topic, data_len, buffer);
+			printf("reconnect %i\n", rc);
+		}
+		if (opts.qos > 0)
+			MQTTClient_yield();
 	}
 	
 	printf("Stopping\n");
+	
+	free(buffer);
 
 	MQTTClient_disconnect(client, 0);
 
@@ -181,7 +328,11 @@ void getopts(int argc, char** argv)
 	
 	while (count < argc)
 	{
-		if (strcmp(argv[count], "--qos") == 0)
+		if (strcmp(argv[count], "--retained") == 0)
+			opts.retained = 1;
+		if (strcmp(argv[count], "--verbose") == 0)
+			opts.verbose = 1;
+		else if (strcmp(argv[count], "--qos") == 0)
 		{
 			if (++count < argc)
 			{
@@ -197,6 +348,7 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+#if 0
 		else if (strcmp(argv[count], "--host") == 0)
 		{
 			if (++count < argc)
@@ -211,6 +363,35 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+#endif
+		else if (strcmp(argv[count], "--appkey") == 0)
+		{
+			if (++count < argc)
+				opts.appkey = argv[count];
+			else
+				usage();
+		}
+
+		else if (strcmp(argv[count], "--deviceid") == 0)
+		{
+			if (++count < argc)
+				opts.deviceid = argv[count];
+		}
+		else if (strcmp(argv[count], "--alias") == 0)
+		{
+			if (++count < argc)
+				opts.alias = argv[count];
+			else
+				usage();
+		}
+		else if (strcmp(argv[count], "--authkey") == 0)
+		{
+			if (++count < argc)
+				opts.authkey = argv[count];
+			else
+				usage();
+		}
+/*
 		else if (strcmp(argv[count], "--clientid") == 0)
 		{
 			if (++count < argc)
@@ -232,24 +413,18 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+*/
+		else if (strcmp(argv[count], "--maxdatalen") == 0)
+		{
+			if (++count < argc)
+				opts.maxdatalen = atoi(argv[count]);
+			else
+				usage();
+		}
 		else if (strcmp(argv[count], "--delimiter") == 0)
 		{
 			if (++count < argc)
 				opts.delimiter = argv[count];
-			else
-				opts.nodelimiter = 1;
-		}
-		else if (strcmp(argv[count], "--showtopics") == 0)
-		{
-			if (++count < argc)
-			{
-				if (strcmp(argv[count], "on") == 0)
-					opts.showtopics = 1;
-				else if (strcmp(argv[count], "off") == 0)
-					opts.showtopics = 0;
-				else
-					usage();
-			}
 			else
 				usage();
 		}
@@ -257,3 +432,4 @@ void getopts(int argc, char** argv)
 	}
 	
 }
+
