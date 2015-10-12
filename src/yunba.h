@@ -742,7 +742,11 @@ DLLExport int MQTTClient_get_broker(MQTTClient *handle, char* broker);
 
 DLLExport int MQTTClient_setup_with_appkey(char* appkey, REG_info *info);
 
+DLLExport int MQTTClient_setup_with_appkey_v2(char* appkey, REG_info *info);
+
 DLLExport int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_info *info);
+
+DLLExport int MQTTClient_setup_with_appkey_and_deviceid_v2(char* appkey, char *deviceid, REG_info *info);
 
 DLLExport int MQTTClient_get_host(char *appkey, char* url);
 DLLExport int MQTTClient_get_host_v2(char *appkey, char* url);

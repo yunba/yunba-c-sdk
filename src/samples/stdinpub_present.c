@@ -189,7 +189,7 @@ int main(int argc, char** argv)
 	topic = argv[1];
 	printf("Using topic %s\n", topic);
 
-	int res = MQTTClient_setup_with_appkey_and_deviceid(opts.appkey, opts.deviceid, &my_reg_info);
+	int res = MQTTClient_setup_with_appkey_and_deviceid_v2(opts.appkey, opts.deviceid, &my_reg_info);
 	if (res < 0) {
 		printf("can't get reg info\n");
 		return 0;

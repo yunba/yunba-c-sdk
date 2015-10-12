@@ -2048,6 +2048,23 @@ int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 	return 0;
 }
 
+int MQTTClient_setup_with_appkey_v2(char* appkey, REG_info *info)
+{
+	char json_data[1024];
+	sprintf(json_data, "{\"a\": \"%s\", \"p\":4}", appkey);
+
+	int ret = tcp_post_json(json_data, "abj-redismsg-4.yunba.io", 9944, "/device/reg/", reg_cb);
+	if (ret < 0)
+		return -1;
+
+	strcpy(info->client_id, reg_info.client_id);
+	strcpy(info->username, reg_info.username);
+	strcpy(info->password, reg_info.password);
+	strcpy(info->device_id, reg_info.device_id);
+
+	return 0;
+}
+
 int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_info *info)
 {
 	char json_data[1024];
@@ -2061,6 +2078,29 @@ int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_
 		sprintf(json_data, "{\"a\": \"%s\", \"p\":4, \"d\": \"%s\"}", appkey, deviceid);
 
 	int ret = http_post_json(json_data, "reg.yunba.io", 8383, "/device/reg/", reg_cb);
+	if (ret < 0)
+		return -1;
+
+	strcpy(info->client_id, reg_info.client_id);
+	strcpy(info->username, reg_info.username);
+	strcpy(info->password, reg_info.password);
+	strcpy(info->device_id, reg_info.device_id);
+	return 0;
+}
+
+int MQTTClient_setup_with_appkey_and_deviceid_v2(char* appkey, char *deviceid, REG_info *info)
+{
+	char json_data[1024];
+
+	if (appkey == NULL)
+		return -1;
+
+	if (deviceid == NULL)
+		sprintf(json_data, "{\"a\": \"%s\", \"p\":4}", appkey);
+	else
+		sprintf(json_data, "{\"a\": \"%s\", \"p\":4, \"d\": \"%s\"}", appkey, deviceid);
+
+	int ret = tcp_post_json(json_data, "abj-redismsg-4.yunba.io", 9944, "/device/reg/", reg_cb);
 	if (ret < 0)
 		return -1;
 
