@@ -208,7 +208,7 @@ int main(int argc, char** argv)
 	MQTTClient_get_broker(&client, broker);
 	printf("get broker:%s\n", broker);
 
-//	MQTTClient_set_broker(&client, "localhost");
+//	MQTTClient_set_broker(&client, "abj-front-12");
 
 	MQTTClient_get_broker(&client, broker);
 	printf("get broker:%s\n", broker);

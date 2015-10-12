@@ -1946,6 +1946,69 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, C
     return ret;
 }
 
+int tcp_post_json(char *json_data, char *hostname, uint16_t port, char *path, CALLBACK cb) {
+	int ret = -1;
+	int sockfd, h;
+	socklen_t len;
+	fd_set   t_set1;
+	struct sockaddr_in servaddr;
+	char buf[4096];
+	memset(buf, 0, sizeof(buf));
+
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		return -1;
+
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(port);
+    struct hostent *host_entry = gethostbyname(hostname);
+    char* p = inet_ntoa(*((struct in_addr *)host_entry->h_addr));
+	if (inet_pton(AF_INET, p, &servaddr.sin_addr) <= 0)
+		return -1;
+
+	struct timeval timeout;
+	timeout.tv_sec = 10;
+	timeout.tv_usec = 0;
+	if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+		return -1;
+	if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+		return -1;
+
+    //TODO: 超时处理.
+	if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+		return -1;
+
+	uint16_t json_len = strlen(json_data);
+    buf[0] = 1; //version
+    buf[1] = (uint8_t)((json_len >> 8) & 0xff);
+    buf[2] = (uint8_t)(json_len & 0xff);
+    memcpy(buf + 3, json_data, strlen(json_data));
+
+    //TODO:　可能没写完？
+    ret = write(sockfd, buf, json_len + 3);
+	if (ret < 0) {
+		close(sockfd);
+		return -1;
+	}
+
+    struct timeval  tv;
+    FD_ZERO(&t_set1);
+    FD_SET(sockfd, &t_set1);
+	tv.tv_sec= 6;
+	tv.tv_usec= 0;
+	h = select(sockfd + 1, &t_set1, NULL, NULL, &tv);
+	if (h > 0) {
+		memset(buf, 0, sizeof(buf));
+		ssize_t  i= read(sockfd, buf, sizeof(buf));
+
+		ret = (i > 0) ? cb(buf) : -1;
+	} else
+		ret = -1;
+
+    close(sockfd);
+    return ret;
+}
+
 static int reg_cb(const char *json_data) {
 	int ret = 0;
 	char buf[500];
@@ -2035,7 +2098,7 @@ int MQTTClient_get_host(char *appkey, char* url)
 	sprintf(json_data, "{\"a\":\"%s\",\"n\":\"%s\",\"v\":\"%s\",\"o\":\"%s\"}",
 			appkey, /*${networktype}*/"1", "v1.0.0", /*${NetworkOperator}*/"1");
 
-	ret = http_post_json(json_data, "tick.yunba.io", 9999, "/", get_broker_cb);
+	ret = tcp_post_json(json_data, "abj-redismsg-4", 9977, "/", get_broker_cb);
 	if (ret < 0)
 		return -1;
 
