@@ -2098,7 +2098,23 @@ int MQTTClient_get_host(char *appkey, char* url)
 	sprintf(json_data, "{\"a\":\"%s\",\"n\":\"%s\",\"v\":\"%s\",\"o\":\"%s\"}",
 			appkey, /*${networktype}*/"1", "v1.0.0", /*${NetworkOperator}*/"1");
 
-	ret = tcp_post_json(json_data, "abj-redismsg-4", 9977, "/", get_broker_cb);
+	ret = http_post_json(json_data, "tick.yunba.io", 9999, "/", get_broker_cb);
+	if (ret < 0)
+		return -1;
+
+	strcpy(url, url_host);
+	return 0;
+}
+
+int MQTTClient_get_host_v2(char *appkey, char* url)
+{
+	int ret = -1;
+	char json_data[1024];
+
+	sprintf(json_data, "{\"a\":\"%s\",\"n\":\"%s\",\"v\":\"%s\",\"o\":\"%s\"}",
+			appkey, /*${networktype}*/"1", "v1.0.0", /*${NetworkOperator}*/"1");
+
+	ret = tcp_post_json(json_data, "abj-redismsg-4.yunba.io", 9977, "/", get_broker_cb);
 	if (ret < 0)
 		return -1;
 

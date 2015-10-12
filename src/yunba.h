@@ -745,6 +745,7 @@ DLLExport int MQTTClient_setup_with_appkey(char* appkey, REG_info *info);
 DLLExport int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_info *info);
 
 DLLExport int MQTTClient_get_host(char *appkey, char* url);
+DLLExport int MQTTClient_get_host_v2(char *appkey, char* url);
 
 DLLExport int MQTTClient_waitForCompletion(MQTTClient handle, MQTTClient_deliveryToken dt, unsigned long timeout);
 

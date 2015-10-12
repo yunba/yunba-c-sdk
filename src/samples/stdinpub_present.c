@@ -197,7 +197,7 @@ int main(int argc, char** argv)
 
 	printf("Get reg info: client_id:%s,username:%s,password:%s, devide_id:%s\n", my_reg_info.client_id, my_reg_info.username, my_reg_info.password, my_reg_info.device_id);
 
-	res = MQTTClient_get_host(opts.appkey, url);
+	res = MQTTClient_get_host_v2(opts.appkey, url);
 	if (res < 0) {
 		printf("can't get host info\n");
 		return 0;
