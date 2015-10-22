@@ -2000,8 +2000,11 @@ int tcp_post_json(char *json_data, char *hostname, uint16_t port, char *path, CA
 	if (h > 0) {
 		memset(buf, 0, sizeof(buf));
 		ssize_t  i= read(sockfd, buf, sizeof(buf));
-
-		ret = (i > 0) ? cb(buf) : -1;
+		if (i > 3) {
+			uint16_t len = (uint16_t)(((uint8_t)buf[1] << 8) | (uint8_t)buf[2]);
+			ret = (i == (len + 3)) ? cb(buf + 3) : -1;
+		} else
+			ret = -1;
 	} else
 		ret = -1;
 
