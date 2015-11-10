@@ -2056,7 +2056,7 @@ int MQTTClient_setup_with_appkey_v2(char* appkey, REG_info *info)
 	char json_data[1024];
 	sprintf(json_data, "{\"a\": \"%s\", \"p\":4}", appkey);
 
-	int ret = tcp_post_json(json_data, "abj-redismsg-4.yunba.io", 9944, "/device/reg/", reg_cb);
+	int ret = tcp_post_json(json_data, "reg-t.yunba.io", 9944, "/device/reg/", reg_cb);
 	if (ret < 0)
 		return -1;
 
@@ -2103,7 +2103,7 @@ int MQTTClient_setup_with_appkey_and_deviceid_v2(char* appkey, char *deviceid, R
 	else
 		sprintf(json_data, "{\"a\": \"%s\", \"p\":4, \"d\": \"%s\"}", appkey, deviceid);
 
-	int ret = tcp_post_json(json_data, "abj-redismsg-4.yunba.io", 9944, "/device/reg/", reg_cb);
+	int ret = tcp_post_json(json_data, "reg-t.yunba.io", 9944, "/device/reg/", reg_cb);
 	if (ret < 0)
 		return -1;
 
@@ -2157,7 +2157,7 @@ int MQTTClient_get_host_v2(char *appkey, char* url)
 	sprintf(json_data, "{\"a\":\"%s\",\"n\":\"%s\",\"v\":\"%s\",\"o\":\"%s\"}",
 			appkey, /*${networktype}*/"1", "v1.0.0", /*${NetworkOperator}*/"1");
 
-	ret = tcp_post_json(json_data, "abj-redismsg-4.yunba.io", 9977, "/", get_broker_cb);
+	ret = tcp_post_json(json_data, "tick-t.yunba.io", 9977, "/", get_broker_cb);
 	if (ret < 0)
 		return -1;
 
