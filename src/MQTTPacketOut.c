@@ -204,7 +204,7 @@ void* MQTTPacket_suback(unsigned char aHeader, char* data, size_t datalen)
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
-	pack->msgId = readInt(&curdata);
+	pack->msgId = readInt64(&curdata);
 	pack->qoss = ListInitialize();
 	while ((size_t)(curdata - data) < datalen)
 	{

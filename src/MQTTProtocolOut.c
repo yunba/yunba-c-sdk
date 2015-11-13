@@ -157,7 +157,7 @@ int MQTTProtocol_handlePingresps(void* pack, int sock)
  * @param qoss corresponding list of QoSs
  * @return completion code
  */
-int MQTTProtocol_subscribe(Clients* client, List* topics, List* qoss, int msgID)
+int MQTTProtocol_subscribe(Clients* client, List* topics, List* qoss, uint64_t msgID)
 {
 	int rc = 0;
 
