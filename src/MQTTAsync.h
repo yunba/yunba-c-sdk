@@ -92,11 +92,17 @@
 #endif
 
 #include <stdio.h>
+#include <inttypes.h>
+#include "cJSON.h"
+#include "yunba_common.h"
 /// @endcond
 
 #if !defined(NO_PERSISTENCE)
 #include "MQTTClientPersistence.h"
 #endif
+
+
+
 
 /**
  * Return code: No error. Indicates successful completion of an MQTT client
@@ -181,7 +187,7 @@ typedef void* MQTTAsync;
  * MQTTAsync_deliveryComplete(), and
  * MQTTAsync_getPendingTokens()).
  */
-typedef int MQTTAsync_token;
+typedef uint64_t MQTTAsync_token;
 
 /**
  * A structure representing the payload and attributes of an MQTT message. The
@@ -242,7 +248,7 @@ typedef struct
 	/** The message identifier is normally reserved for internal use by the
       * MQTT client and server. 
       */
-	int msgid;
+	uint64_t msgid;
 } MQTTAsync_message;
 
 #define MQTTAsync_message_initializer { {'M', 'Q', 'T', 'M'}, 0, 0, NULL, 0, 0, 0, 0 }
@@ -312,6 +318,9 @@ typedef void MQTTAsync_deliveryComplete(void* context, MQTTAsync_token token);
  */
 typedef void MQTTAsync_connectionLost(void* context, char* cause);
 
+typedef int MQTTClient_pub2Arrive(void *context, uint16_t cmd, int status, int ret_string_len, char *ret_string);
+
+
 /** The data returned on completion of an unsuccessful API call in the response callback onFailure. */
 typedef struct
 {
@@ -341,6 +350,11 @@ typedef struct
 			MQTTAsync_message message;
 			char* destinationName;
 		} pub;
+		struct
+		{
+			MQTTAsync_message message;
+			unsigned char cmd;
+		} pub2;
 		/* For connect, the server connected to, MQTT version used, and sessionPresent flag */
 		struct
 		{
@@ -434,7 +448,7 @@ typedef struct
  * ::MQTTASYNC_FAILURE if an error occurred.
  */
 DLLExport int MQTTAsync_setCallbacks(MQTTAsync handle, void* context, MQTTAsync_connectionLost* cl,
-									MQTTAsync_messageArrived* ma, MQTTAsync_deliveryComplete* dc);
+									MQTTAsync_messageArrived* ma, MQTTAsync_deliveryComplete* dc, MQTTClient_pub2Arrive *eca);
 		
 
 /**
@@ -999,6 +1013,30 @@ typedef struct
   * @return an array of strings describing the library.  The last entry is a NULL pointer. 
   */
 DLLExport MQTTAsync_nameValue* MQTTAsync_getVersionInfo();
+
+DLLExport int MQTTAsync_set_alias(MQTTAsync handle, char* alias, MQTTAsync_responseOptions *resp);
+DLLExport int MQTTAsync_get_alias(MQTTAsync handle, char* parameter, MQTTAsync_responseOptions *resp);
+DLLExport int MQTTAsync_presence(MQTTAsync handle, char* topic, MQTTAsync_responseOptions *resp);
+DLLExport int MQTTAsync_unpresence(MQTTAsync handle, char* topic, MQTTAsync_responseOptions *resp);
+DLLExport int MQTTAsync_get_aliaslist2(MQTTAsync handle, char* topic, MQTTAsync_responseOptions *resp);
+DLLExport int MQTTAsync_get_topiclist2(MQTTAsync handle, char* alias, MQTTAsync_responseOptions *resp);
+DLLExport int MQTTAsync_get_status2(MQTTAsync handle, char* alias, MQTTAsync_responseOptions *resp);
+
+DLLExport int MQTTAsynct_publish_to_alias(MQTTAsync handle, char* alias, int data_len, void* data);
+
+DLLExport int MQTTAsyn_publish2(MQTTAsync handle,
+		const char* topicName,
+		int payloadlen,
+		void* payload,
+		cJSON *opt,
+		MQTTAsync_responseOptions* response);
+
+DLLExport int MQTTAsyn_publish2_to_alias(MQTTAsync handle,
+				const char* alias,
+				int payloadlen,
+				void* payload,
+				cJSON *opt,
+				MQTTAsync_responseOptions* response);
 
 
 /**

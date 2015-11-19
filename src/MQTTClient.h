@@ -113,24 +113,13 @@
 
 #include <stdio.h>
 #include <inttypes.h>
+#include "yunba_common.h"
 /// @endcond
 
 #if !defined(NO_PERSISTENCE)
 #include "MQTTClientPersistence.h"
 #endif
 
-typedef enum {
-	GET_ALIAS =1,
-	GET_ALIAS_ACK,
-	GET_TOPIC,
-	GET_TOPIC_ACK,
-	GET_ALIAS_LIST,
-	GET_ALIAS_LIST_ACK,
-	PUBLISH2,
-	PUBLISH2_ACK,
-	GET_STATUS = 9,
-	GET_STATUS_ACK
-} EXTED_CMD;
 
 /**
  * Return code: No error. Indicates successful completion of an MQTT client

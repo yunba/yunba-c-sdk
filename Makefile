@@ -72,11 +72,11 @@ HEADERS = $(srcdir)/*.h
 HEADERS_C = $(filter-out $(srcdir)/MQTTAsync.h, $(HEADERS))
 HEADERS_A = $(HEADERS)
 
-SAMPLE_FILES_C = stdinpub stdoutsub stdinpub_present
+SAMPLE_FILES_C = stdinpub_present
 SYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_C}}
 
-#SAMPLE_FILES_A = stdoutsuba
-#ASYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_A}}
+SAMPLE_FILES_A =  stdouta_demo
+ASYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_A}}
 
 #TEST_FILES_C = test1 sync_client_test test_mqtt4sync
 #SYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_C}}
@@ -187,7 +187,7 @@ ${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c $(MQTTLIB_C_TARGET)
 	${CC} -o $@  ${srcdir}/cJSON.c $< -l${MQTTLIB_C} ${FLAGS_EXE}
 
 ${ASYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c $(MQTTLIB_A_TARGET)
-	${CC} -o $@ $< -l${MQTTLIB_A} ${FLAGS_EXE}
+	${CC} -o $@ ${srcdir}/cJSON.c $< -l${MQTTLIB_A} ${FLAGS_EXE}
 
 ${MQTTLIB_C_TARGET}: ${SOURCE_FILES_C} ${HEADERS_C}
 	$(SED_COMMAND) $(srcdir)/MQTTClient.c

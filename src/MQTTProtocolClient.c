@@ -28,6 +28,7 @@
 
 
 #include <stdlib.h>
+#include <math.h>
 
 #include "MQTTProtocolClient.h"
 #if !defined(NO_PERSISTENCE)
@@ -65,7 +66,7 @@ unsigned long long int randm(int n)
         unsigned long long int y;
         srand(getpid());
         x = rand() / (double)RAND_MAX;
-        y = (unsigned long long int) (x * pow(10.0, n*1.0));
+        y = (uint64_t) (x * pow(10.0, n*1.0));
         return y;
 }
 
@@ -74,7 +75,7 @@ uint64_t generate_uuid() {
         gettimeofday(&t_start, NULL);
         uint64_t ms = ((uint64_t)t_start.tv_sec * 1000) + (uint64_t)t_start.tv_usec/1000;
         uint64_t id = ms << (64 - 41);
-	id |= (uint64_t)(randm(16) % (unsigned long long int)(pow(2, (64 - 41))));
+	id |= (uint64_t)(randm(16) % (uint64_t)(pow(2, (64 - 41))));
         return id;
 }
 

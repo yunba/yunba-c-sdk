@@ -55,6 +55,9 @@
 #define BUILD_TIMESTAMP "Mon Apr 20 17:31:00 HKT 2015"
 #define CLIENT_VERSION  "1.0.3"
 
+#define DEFAULT_QOS 1
+#define DEFAULT_RETAINED 0
+
 char* client_timestamp_eye = "MQTTAsyncV3_Timestamp " BUILD_TIMESTAMP;
 char* client_version_eye = "MQTTAsyncV3_Version " CLIENT_VERSION;
 
@@ -247,6 +250,14 @@ typedef struct
 		} pub;
 		struct
 		{
+			unsigned char cmd;
+			int payloadlen;
+			void* payload;
+			int qos;
+			int retained;
+		} pub2;
+		struct
+		{
 			int internal;
 			int timeout;
 		} dis;
@@ -272,6 +283,7 @@ typedef struct MQTTAsync_struct
 	MQTTAsync_connectionLost* cl;
 	MQTTAsync_messageArrived* ma;
 	MQTTAsync_deliveryComplete* dc;
+	MQTTClient_extendedCmdArrive *eca;
 	void* context; /* the context to be associated with the main callbacks*/
 	
 	MQTTAsync_command connect;				/* Connect operation properties */
@@ -1108,6 +1120,48 @@ void MQTTAsync_processCommand()
 			command->command.details.pub.destinationName = NULL; /* this will be freed by the protocol code */
 		free(p); /* should this be done if the write isn't complete? */
 	}
+	else if (command->command.type == GET)
+	{
+		Messages* msg = NULL;
+		Get* p = NULL;
+
+		p = malloc(sizeof(Get));
+
+		p->ext_payload.ext_buf = command->command.details.pub2.payload;
+		p->ext_payload.ext_cmd = command->command.details.pub2.cmd;
+		p->ext_payload.ext_buf_len = command->command.details.pub2.payloadlen;
+		p->msgId = command->command.token;
+
+		rc = MQTTProtocol_startGet(command->client->c, p, command->command.details.pub2.qos, command->command.details.pub2.retained, &msg);
+
+		if (command->command.details.pub2.qos == 0)
+		{
+			if (rc == TCPSOCKET_COMPLETE)
+			{
+				if (command->command.onSuccess)
+				{
+					MQTTAsync_successData data;
+
+					data.token = command->command.token;
+					data.alt.pub2.cmd = command->command.details.pub2.cmd;
+					data.alt.pub2.message.payload = command->command.details.pub2.payload;
+					data.alt.pub2.message.payloadlen = command->command.details.pub2.payloadlen;
+					data.alt.pub2.message.qos = command->command.details.pub2.qos;
+					data.alt.pub2.message.retained = command->command.details.pub2.retained;
+					Log(TRACE_MIN, -1, "Calling publish2 success for client %s", command->client->c->clientID);
+					(*(command->command.onSuccess))(command->command.context, &data);
+				}
+			}
+			else
+			{
+				command->command.details.pub2.cmd = 0; /* this will be freed by the protocol code */
+				command->client->pending_write = &command->command;
+			}
+		}
+		else
+			command->command.details.pub2.cmd = 0; /* this will be freed by the protocol code */
+		free(p); /* should this be done if the write isn't complete? */
+	}
 	else if (command->command.type == DISCONNECT)
 	{
 		if (command->client->c->connect_state != 0 || command->client->c->connected != 0)
@@ -1531,6 +1585,18 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 			}
 			if (pack)
 			{
+				if (pack->header.bits.type == GET) {
+					Getack get_ack = *(Getack*)pack;
+//					*rc = MQTTProtocol_handleGets(pack, *sock);
+					if (m && m->eca)
+					{
+						Log(TRACE_MIN, -1, "Calling extendedCommand ack for client %s", m->c->clientID);
+						(*(m->eca))(m->context, get_ack.ack_payload.ext_cmd, get_ack.ack_payload.status,
+								get_ack.ack_payload.len, get_ack.ack_payload.ret_string);
+					}
+				} else
+
+
 				if (pack->header.bits.type == CONNACK)
 				{
 					int sessionPresent = ((Connack*)pack)->flags.bits.sessionPresent;
@@ -1734,7 +1800,8 @@ void MQTTAsync_stop()
 int MQTTAsync_setCallbacks(MQTTAsync handle, void* context,
 									MQTTAsync_connectionLost* cl,
 									MQTTAsync_messageArrived* ma,
-									MQTTAsync_deliveryComplete* dc)
+									MQTTAsync_deliveryComplete* dc,
+									MQTTClient_pub2Arrive *eca)
 {
 	int rc = MQTTASYNC_SUCCESS;
 	MQTTAsyncs* m = handle;
@@ -1750,6 +1817,7 @@ int MQTTAsync_setCallbacks(MQTTAsync handle, void* context,
 		m->cl = cl;
 		m->ma = ma;
 		m->dc = dc;
+		m->eca = eca;
 	}
 
 	MQTTAsync_unlock_mutex(mqttasync_mutex);
@@ -2162,13 +2230,15 @@ int cmdMessageIDCompare(void* a, void* b)
  * @param m a client structure
  * @return the next message id to use, or 0 if none available
  */
-int MQTTAsync_assignMsgId(MQTTAsyncs* m)
+uint64_t MQTTAsync_assignMsgId(MQTTAsyncs* m)
 {
-	int start_msgid = m->c->msgID;
-	int msgid = start_msgid;
+	uint64_t start_msgid = m->c->msgID;
+	uint64_t msgid = start_msgid;
 	thread_id_type thread_id = 0;
 	int locked = 0;
 
+	msgid = MQTTProtocol_assignMsgId(m->c);
+#if 0
 	/* need to check: commands list and response list for a client */
 	FUNC_ENTRY;
 	/* We might be called in a callback. In which case, this mutex will be already locked. */
@@ -2178,6 +2248,7 @@ int MQTTAsync_assignMsgId(MQTTAsyncs* m)
 		MQTTAsync_lock_mutex(mqttasync_mutex);
 		locked = 1;
 	}
+
 
 	msgid = (msgid == MAX_MSG_ID) ? 1 : msgid + 1;
 	while (ListFindItem(commands, &msgid, cmdMessageIDCompare) ||
@@ -2192,9 +2263,12 @@ int MQTTAsync_assignMsgId(MQTTAsyncs* m)
 	}
 	if (msgid != 0)
 		m->c->msgID = msgid;
+
 	if (locked)
 		MQTTAsync_unlock_mutex(mqttasync_mutex);
+
 	FUNC_EXIT_RC(msgid);
+#endif
 	return msgid;
 }
 
@@ -2205,7 +2279,7 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, int count, char* const* topic, int
 	int i = 0;
 	int rc = MQTTASYNC_FAILURE;
 	MQTTAsync_queuedCommand* sub;
-	int msgid = 0;
+	uint64_t msgid = 0;
 
 	FUNC_ENTRY;
 	if (m == NULL || m->c == NULL)
@@ -2213,11 +2287,13 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, int count, char* const* topic, int
 		rc = MQTTASYNC_FAILURE;
 		goto exit;
 	}
+
 	if (m->c->connected == 0)
 	{
 		rc = MQTTASYNC_DISCONNECTED;
 		goto exit;
 	}
+
 	for (i = 0; i < count; i++)
 	{
 		if (!UTF8_validateString(topic[i]))
@@ -2231,6 +2307,7 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, int count, char* const* topic, int
 			goto exit;
 		}
 	}
+
 	if ((msgid = MQTTAsync_assignMsgId(m)) == 0)
 	{
 		rc = MQTTASYNC_NO_MORE_MSGIDS;
@@ -2258,6 +2335,7 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, int count, char* const* topic, int
 		sub->command.details.sub.topics[i] = MQTTStrdup(topic[i]);
 		sub->command.details.sub.qoss[i] = qos[i];	
 	}
+
 	rc = MQTTAsync_addCommand(sub, sizeof(sub));
 
 exit:
@@ -2283,7 +2361,7 @@ int MQTTAsync_unsubscribeMany(MQTTAsync handle, int count, char* const* topic, M
 	int i = 0;
 	int rc = SOCKET_ERROR;
 	MQTTAsync_queuedCommand* unsub;
-	int msgid = 0;
+	uint64_t msgid = 0;
 
 	FUNC_ENTRY;
 	if (m == NULL || m->c == NULL)
@@ -2345,6 +2423,202 @@ int MQTTAsync_unsubscribe(MQTTAsync handle, const char* topic, MQTTAsync_respons
 	return rc;
 }
 
+int MQTTAsync_get(MQTTAsync handle,
+				EXTED_CMD cmd,
+				int payloadlen,
+				void* payload,
+				int qos, int retained,
+				MQTTAsync_responseOptions* response)
+{
+	int rc = MQTTASYNC_SUCCESS;
+	MQTTAsyncs* m = handle;
+	MQTTAsync_queuedCommand* pub;
+	Get* p = NULL;
+	uint64_t msgid = 0;
+
+	FUNC_ENTRY;
+	if (m == NULL || m->c == NULL)
+		rc = MQTTASYNC_FAILURE;
+	else if (m->c->connected == 0)
+		rc = MQTTASYNC_DISCONNECTED;
+//	else if (!UTF8_validateString(topic))
+//		rc = MQTTASYNC_BAD_UTF8_STRING;
+	else if (qos < 0 || qos > 2)
+		rc = MQTTASYNC_BAD_QOS;
+	else if (qos > 0 && (msgid = MQTTAsync_assignMsgId(m)) == 0)
+		rc = MQTTASYNC_NO_MORE_MSGIDS;
+
+	if (rc != MQTTASYNC_SUCCESS)
+		goto exit;
+
+	/* Add publish request to operation queue */
+	pub = malloc(sizeof(MQTTAsync_queuedCommand));
+	memset(pub, '\0', sizeof(MQTTAsync_queuedCommand));
+	pub->client = m;
+	pub->command.type = GET;
+	pub->command.token = msgid;
+	if (response)
+	{
+		pub->command.onSuccess = response->onSuccess;
+		pub->command.onFailure = response->onFailure;
+		pub->command.context = response->context;
+		response->token = pub->command.token;
+	}
+	pub->command.details.pub2.cmd = cmd;
+	pub->command.details.pub2.payloadlen = payloadlen;
+	pub->command.details.pub2.payload = malloc(payloadlen);
+	memcpy(pub->command.details.pub2.payload, payload, payloadlen);
+	pub->command.details.pub2.qos = qos;
+	pub->command.details.pub2.retained = retained;
+	rc = MQTTAsync_addCommand(pub, sizeof(pub));
+
+exit:
+	FUNC_EXIT_RC(rc);
+	return rc;
+}
+
+int MQTTAsyn_publish2(MQTTAsync handle,
+		const char* topicName, int payloadlen, void* payload, cJSON *opt, MQTTAsync_responseOptions* response)
+{
+	const char *key[PUBLISH2_TLV_MAX_NUM] =
+	{"topic", "payload", "platform", "time_to_live", "time_delay", "location", "qos", "apn_json"};
+	uint8_t *p;
+	uint8_t pub_buf[1024];
+	uint16_t len, i = 0;
+
+	p = pub_buf;
+
+	*p++ = (uint8_t)PUBLISH2_TLV_PAYLOAD;
+	*p++ = (uint8_t)((payloadlen >> 8) & 0xff);
+	*p++ = (uint8_t)(payloadlen & 0xff);
+	memcpy(p, payload, payloadlen);
+	p += payloadlen;
+
+	len = strlen(topicName);
+	*p++ = (uint8_t)PUBLISH2_TLV_TOPIC;
+	*p++ = (uint8_t)((len >> 8) & 0xff);
+	*p++ = (uint8_t)(len & 0xff);
+	memcpy(p, topicName, len);
+	p += len;
+
+	if (opt) {
+		uint8_t j = 0;
+		int size = cJSON_GetArraySize(opt);
+		for (j = 0; j < size; j++) {
+			cJSON * test = cJSON_GetArrayItem(opt, j);
+			uint8_t i = 0;
+			for (i = 0; i < PUBLISH2_TLV_MAX_NUM; i++) {
+				if (strcmp(test->string, key[i]) == 0) {
+					switch (i) {
+					case PUBLISH2_TLV_TTL:
+					case PUBLISH2_TLV_TIME_DELAY:
+					case PUBLISH2_TLV_QOS:
+					{
+						*p++ = (uint8_t)i;
+						*p++ = 0;
+						*p++ = 2;
+						memcpy(p, test->valuestring, 2);
+						p += 2;
+						break;
+					}
+
+					case PUBLISH2_TLV_APN_JSON:
+					{
+						len = strlen(test->valuestring);
+						*p++ = (uint8_t)PUBLISH2_TLV_APN_JSON;
+						*p++ = (uint8_t)((len >> 8) & 0xff);
+						*p++ = (uint8_t)(len & 0xff);
+						memcpy(p, test->valuestring, len);
+						p += len;
+						break;
+					}
+
+					default:
+						break;
+					}
+				}
+			}
+		}
+	}
+	return MQTTAsync_get(handle, PUBLISH2, p-pub_buf, pub_buf, DEFAULT_QOS, DEFAULT_RETAINED, response);
+}
+
+int MQTTAsyn_publish2_to_alias(MQTTAsync handle,
+				const char* alias,
+				int payloadlen,
+				void* payload,
+				cJSON *opt,
+				MQTTAsync_responseOptions* response)
+{
+	char buf[150];
+	sprintf(buf, ",yta/%s", alias);
+	return MQTTAsyn_publish2(handle, buf, payloadlen, payload, opt, response);
+}
+
+int MQTTAsync_set_alias(MQTTAsync handle, char* alias, MQTTAsync_responseOptions *resp)
+{
+	char *topic = ",yali";
+	return MQTTAsync_send(handle, topic, strlen(alias), alias,DEFAULT_QOS, DEFAULT_RETAINED, resp);
+}
+
+int MQTTAsync_get_alias(MQTTAsync handle, char* para, MQTTAsync_responseOptions* response)
+{
+	return MQTTAsync_get(handle, GET_ALIAS, strlen(para), para, DEFAULT_QOS, DEFAULT_RETAINED, response);
+}
+
+int MQTTAsync_presence(MQTTAsync handle, char* topic, MQTTAsync_responseOptions* response)
+{
+	char temp[100];
+	sprintf(temp, "%s/p", topic);
+	return MQTTAsync_subscribe(handle, topic, DEFAULT_QOS, response);
+}
+
+int MQTTAsync_unpresence(MQTTAsync handle, char* topic, MQTTAsync_responseOptions* response)
+{
+	char temp[100];
+	sprintf(temp, "%s/p", topic);
+	return MQTTAsync_unsubscribe(handle, topic, response);
+}
+
+int MQTTAsync_get_aliaslist2(MQTTAsync handle, char* topic, MQTTAsync_responseOptions* response)
+{
+	return MQTTAsync_get(handle,
+			GET_ALIASLIST2,
+			strlen(topic),
+			topic,
+			DEFAULT_QOS,
+			DEFAULT_RETAINED,
+			response);
+}
+
+int MQTTAsync_get_topiclist2(MQTTAsync handle, char* alias, MQTTAsync_responseOptions* response)
+{
+	return MQTTAsync_get(handle, GET_TOPIC_LIST2,
+			strlen(alias),
+			alias,
+			DEFAULT_QOS,
+			DEFAULT_RETAINED,
+			response);
+}
+
+int MQTTAsync_get_status2(MQTTAsync handle, char* alias, MQTTAsync_responseOptions* response)
+{
+	return MQTTAsync_get(handle, GET_STATUS2,
+			strlen(alias),
+			alias,
+			DEFAULT_QOS,
+			DEFAULT_RETAINED,
+			response);
+}
+
+int MQTTAsync_publish_to_alias(MQTTAsync handle, char* alias, int data_len, void* data,
+		MQTTAsync_responseOptions* response)
+{
+	char buf[150];
+	sprintf(buf, ",yta/%s", alias);
+	return MQTTAsync_send(handle, buf, data_len, data, DEFAULT_QOS, DEFAULT_RETAINED, response);
+}
+
 
 int MQTTAsync_send(MQTTAsync handle, const char* destinationName, int payloadlen, void* payload,
 							 int qos, int retained, MQTTAsync_responseOptions* response)
@@ -2352,7 +2626,7 @@ int MQTTAsync_send(MQTTAsync handle, const char* destinationName, int payloadlen
 	int rc = MQTTASYNC_SUCCESS;
 	MQTTAsyncs* m = handle;
 	MQTTAsync_queuedCommand* pub;
-	int msgid = 0;
+	uint64_t msgid = 0;
 
 	FUNC_ENTRY;
 	if (m == NULL || m->c == NULL)

@@ -48,10 +48,11 @@
 #include <Windows.h>
 #define sleep Sleep
 #else
-#include <sys/time.h>
+#include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #endif
+
 
 #include "yunba.h"
 
@@ -67,6 +68,7 @@ int toStop = 0;
 static int published = 0;
 
 REG_info my_reg_info;
+Presence_msg my_present;
 
 void cfinish(int sig)
 {
@@ -223,18 +225,45 @@ void getopts(int argc, char** argv)
 }
 
 
-int messageArrived(void *context, char *topicName, int topicLen, MQTTAsync_message *message)
+int messageArrived(void *context, char *topicName, int topicLen, MQTTAsync_message *m)
 {
-//	if (opts.showtopics)
-		printf("topic: %s\t", topicName);
-	if (opts.nodelimiter)
-		printf("msg: %.*s\n", message->payloadlen, (char*)message->payload);
-//	else
-//		printf("message: %.*s%c", message->payloadlen, (char*)message->payload, opts.delimiter);
-	fflush(stdout);
-	MQTTAsync_freeMessage(&message);
+	int ret = -1;
+	int i;
+	char* payloadptr;
+
+	time_t t;
+	time(&t);
+	printf("Message arrived, date:%s", ctime(&t));
+	printf("     qos: %i\n", m->qos);
+	printf("     messageid: %"PRIu64"\n", m->msgid);
+	printf("     topic: %s\n", topicName);
+	printf("   message: ");
+
+	payloadptr = m->payload;
+	for(i = 0; i < m->payloadlen; i++)
+	{
+		putchar(*payloadptr++);
+	}
+	putchar('\n');
+	MQTTAsync_freeMessage(&m);
 	MQTTAsync_free(topicName);
-  return 1;
+
+	/* not expecting any messages */
+	return 1;
+
+
+
+
+////	if (opts.showtopics)
+//		printf("topic: %s\t", topicName);
+//	if (opts.nodelimiter)
+//		printf("msg: %.*s\n", message->payloadlen, (char*)message->payload);
+////	else
+////		printf("message: %.*s%c", message->payloadlen, (char*)message->payload, opts.delimiter);
+//	fflush(stdout);
+//	MQTTAsync_freeMessage(&message);
+//	MQTTAsync_free(topicName);
+//  return 1;
 }
 
 
@@ -283,6 +312,8 @@ void onConnect(void* context, MQTTAsync_successData* response)
 		printf("Failed to start subscribe, return code %d\n", rc);
     		finished = 1;	
 	}
+
+	MQTTAsync_set_alias(client, "my_alias", NULL);
 }
 
 
@@ -387,15 +418,19 @@ int main(int argc, char** argv)
 		exit(-1);	
 	}
 
-#if 0
 	while (!subscribed)
 		#if defined(WIN32)
 			Sleep(100);
 		#else
 			usleep(10000L);
 		#endif
-#endif
-printf("now to test publish\n");
+
+		cJSON *apn_json, *aps;
+		cJSON *Opt = cJSON_CreateObject();
+		cJSON_AddStringToObject(Opt,"time_to_live",  "120");
+		cJSON_AddStringToObject(Opt,"time_delay",  "1100");
+		cJSON_AddStringToObject(Opt,"apn_json",  "{\"aps\":{\"alert\":\"FENCE alarm\", \"sound\":\"alarm.mp3\"}}");
+
 		while (!toStop)
 		{
 			int data_len = 0;
@@ -421,14 +456,14 @@ printf("now to test publish\n");
 		//	do
 			{
 				published = 0;
-				rc = MQTTAsync_send(client, topic, data_len, buffer, opts.qos, 1, &pub_opts);
-				printf("------->publish, %d\n", rc);
+//				rc = MQTTAsync_send(client, topic, data_len, buffer, opts.qos, 1, &pub_opts);
+//				printf("------->publish, %d\n", rc);
 
 				MQTTAsyn_publish2(client,
 						topic,
 						data_len,
 						buffer,
-						NULL,
+						Opt,
 						&pub_opts);
 //				while (published == 0)
 //					#if defined(WIN32)
@@ -442,7 +477,7 @@ printf("now to test publish\n");
 			}
 		//	while (published != 1);
 		}
-
+		cJSON_Delete(Opt);
 		free(buffer);
 
 	if (finished)
