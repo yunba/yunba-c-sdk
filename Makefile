@@ -1,5 +1,5 @@
 #*******************************************************************************
-#  Copyright (c) 2009, 2014 IBM Corp.
+#  Copyright (c) 2009, 2015 IBM Corp.
 # 
 #  All rights reserved. This program and the accompanying materials
 #  are made available under the terms of the Eclipse Public License v1.0
@@ -15,12 +15,31 @@
 #     Allan Stockdill-Mander - SSL updates
 #     Andy Piper - various fixes
 #     Ian Craggs - OSX build
+#     Rainer Poisel - support for multi-core builds and cross-compilation
 #*******************************************************************************/
 
 # Note: on OS X you should install XCode and the associated command-line tools
-DESTDIR = ./__install
+
 SHELL = /bin/sh
-.PHONY: clean, mkdir, install, uninstall, html 
+.PHONY: clean, mkdir, install, uninstall, html
+
+ifndef release.version
+  release.version = 1.0.3
+endif
+
+# determine current platform
+BUILD_TYPE ?= debug
+ifeq ($(OS),Windows_NT)
+	OSTYPE ?= $(OS)
+	MACHINETYPE ?= $(PROCESSOR_ARCHITECTURE)
+else
+	OSTYPE ?= $(shell uname -s)
+	MACHINETYPE ?= $(shell uname -m)
+	build.level = $(shell date)
+endif # OS
+ifeq ($(OSTYPE),linux)
+	OSTYPE = Linux
+endif
 
 # assume this is normally run in the main Paho directory
 ifndef srcdir
@@ -53,245 +72,148 @@ HEADERS = $(srcdir)/*.h
 HEADERS_C = $(filter-out $(srcdir)/MQTTAsync.h, $(HEADERS))
 HEADERS_A = $(HEADERS)
 
-#SAMPLE_FILES_C = stdinpub stdoutsub pubsync pubasync subasync stdinpub_present stdoutsub_demo
-SAMPLE_FILES_C = stdinpub stdoutsub stdinpub_present stdoutsub_demo
+SAMPLE_FILES_C = stdinpub_present
 SYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_C}}
 
-SAMPLE_FILES_A = stdoutsuba MQTTAsync_subscribe MQTTAsync_publish
+SAMPLE_FILES_A =  stdouta_demo
 ASYNC_SAMPLES = ${addprefix ${blddir}/samples/,${SAMPLE_FILES_A}}
 
-#TEST_FILES_C = test1
+#TEST_FILES_C = test1 sync_client_test test_mqtt4sync
 #SYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_C}}
 
 #TEST_FILES_CS = test3
 #SYNC_SSL_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_CS}}
 
-#TEST_FILES_A = test4
+#TEST_FILES_A = test4 test_mqtt4async
 #ASYNC_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_A}}
 
 #TEST_FILES_AS = test5
 #ASYNC_SSL_TESTS = ${addprefix ${blddir}/test/,${TEST_FILES_AS}}
 
 # The names of the four different libraries to be built
-#MQTTLIB_C = paho-mqtt3c
-MQTTLIB_C = yunba
+MQTTLIB_C = paho-mqtt3c
 MQTTLIB_CS = paho-mqtt3cs
 MQTTLIB_A = paho-mqtt3a
 MQTTLIB_AS = paho-mqtt3as
 
-# determine current platform
-ifeq ($(OS),Windows_NT)
-	OSTYPE = $(OS)
-else
-	OSTYPE = $(shell uname -s)
-	MACHINETYPE = $(shell uname -m)
+CC ?= gcc
+
+ifndef INSTALL
+INSTALL = install
 endif
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA =  $(INSTALL) -m 644
+DOXYGEN_COMMAND = doxygen
+
+MAJOR_VERSION = 1
+MINOR_VERSION = 0
+VERSION = ${MAJOR_VERSION}.${MINOR_VERSION}
+
+MQTTLIB_C_TARGET = ${blddir}/lib${MQTTLIB_C}.so.${VERSION}
+MQTTLIB_CS_TARGET = ${blddir}/lib${MQTTLIB_CS}.so.${VERSION}
+MQTTLIB_A_TARGET = ${blddir}/lib${MQTTLIB_A}.so.${VERSION}
+MQTTLIB_AS_TARGET = ${blddir}/lib${MQTTLIB_AS}.so.${VERSION}
+MQTTVERSION_TARGET = ${blddir}/MQTTVersion
+
+CCFLAGS_SO = -g -fPIC $(CFLAGS) -Os -Wall -fvisibility=hidden
+FLAGS_EXE = $(LDFLAGS) -I ${srcdir} -lpthread -lm -L ${blddir}
+FLAGS_EXES = $(LDFLAGS) -I ${srcdir} ${START_GROUP} -lpthread -lssl -lcrypto ${END_GROUP} -L ${blddir}
+
+LDFLAGS_C = $(LDFLAGS) -shared -Wl,-init,$(MQTTCLIENT_INIT) -lpthread -lm
+LDFLAGS_CS = $(LDFLAGS) -shared $(START_GROUP) -lpthread -lm $(EXTRA_LIB) -lssl -lcrypto $(END_GROUP) -Wl,-init,$(MQTTCLIENT_INIT)
+LDFLAGS_A = $(LDFLAGS) -shared -Wl,-init,$(MQTTASYNC_INIT) -lpthread -lm 
+LDFLAGS_AS = $(LDFLAGS) -shared $(START_GROUP) -lpthread -lm $(EXTRA_LIB) -lssl -lcrypto $(END_GROUP) -Wl,-init,$(MQTTASYNC_INIT)
 
 ifeq ($(OSTYPE),Linux)
 
-CC ?= gcc -ggdb -O0
+SED_COMMAND = sed -i "s/\#\#MQTTCLIENT_VERSION_TAG\#\#/${release.version}/g; s/\#\#MQTTCLIENT_BUILD_TAG\#\#/${build.level}/g" 
 
-ifndef INSTALL
-INSTALL = install
+MQTTCLIENT_INIT = MQTTClient_init
+MQTTASYNC_INIT = MQTTAsync_init
+START_GROUP = -Wl,--start-group
+END_GROUP = -Wl,--end-group
+
+EXTRA_LIB = -ldl
+
+LDFLAGS_C += -Wl,-soname,lib$(MQTTLIB_C).so.${MAJOR_VERSION}
+LDFLAGS_CS += -Wl,-soname,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -Wl,-no-whole-archive
+LDFLAGS_A += -Wl,-soname,lib${MQTTLIB_A}.so.${MAJOR_VERSION}
+LDFLAGS_AS += -Wl,-soname,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -Wl,-no-whole-archive
+
+else ifeq ($(OSTYPE),Darwin)
+
+SED_COMMAND = sed -i "" -e "s/\#\#MQTTCLIENT_VERSION_TAG\#\#/${release.version}/g" -e "s/\#\#MQTTCLIENT_BUILD_TAG\#\#/${build.level}/g" 
+
+MQTTCLIENT_INIT = _MQTTClient_init
+MQTTASYNC_INIT = _MQTTAsync_init
+START_GROUP =
+END_GROUP = 
+
+EXTRA_LIB = -ldl
+
+CCFLAGS_SO += -Wno-deprecated-declarations -DUSE_NAMED_SEMAPHORES
+LDFLAGS_C += -Wl,-install_name,lib$(MQTTLIB_C).so.${MAJOR_VERSION}
+LDFLAGS_CS += -Wl,-install_name,lib$(MQTTLIB_CS).so.${MAJOR_VERSION}
+LDFLAGS_A += -Wl,-install_name,lib${MQTTLIB_A}.so.${MAJOR_VERSION}
+LDFLAGS_AS += -Wl,-install_name,lib${MQTTLIB_AS}.so.${MAJOR_VERSION}
+
 endif
-INSTALL_PROGRAM = $(INSTALL)
-INSTALL_DATA =  $(INSTALL) -m 644
-DOXYGEN_COMMAND = doxygen
-
-MAJOR_VERSION = 1
-MINOR_VERSION = 0
-VERSION = ${MAJOR_VERSION}.${MINOR_VERSION}
-
-MQTTLIB_C_TARGET = ${blddir}/lib${MQTTLIB_C}.so.${VERSION}
-MQTTLIB_CS_TARGET = ${blddir}/lib${MQTTLIB_CS}.so.${VERSION}
-MQTTLIB_A_TARGET = ${blddir}/lib${MQTTLIB_A}.so.${VERSION}
-MQTTLIB_AS_TARGET = ${blddir}/lib${MQTTLIB_AS}.so.${VERSION}
-MQTTVERSION_TARGET = ${blddir}/MQTTVersion
-
-CCFLAGS_SO = -ggdb -O0 -fPIC -Os -Wall -fvisibility=hidden
-FLAGS_EXE = -I ${srcdir} -lpthread -L ${blddir}
-
-LDFLAGS_C = -shared -Wl,-soname,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,MQTTClient_init -lpthread -lm
-LDFLAGS_CS = -shared -Wl,-soname,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -lpthread  -ldl -lcrypto -lssl -lm -Wl,-no-whole-archive -Wl,-init,MQTTClient_init 
-LDFLAGS_A = -shared -Wl,-soname,lib${MQTTLIB_A}.so.${MAJOR_VERSION} -Wl,-init,MQTTAsync_init -lpthread  -lm
-LDFLAGS_AS = -shared -Wl,-soname,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -lpthread  -ldl -lcrypto -lssl -lm -Wl,-no-whole-archive -Wl,-init,MQTTAsync_init 
 
 all: build
-	
+
 build: | mkdir ${MQTTLIB_C_TARGET} ${MQTTLIB_CS_TARGET} ${MQTTLIB_A_TARGET} ${MQTTLIB_AS_TARGET} ${MQTTVERSION_TARGET} ${SYNC_SAMPLES} ${ASYNC_SAMPLES} ${SYNC_TESTS} ${SYNC_SSL_TESTS} ${ASYNC_TESTS} ${ASYNC_SSL_TESTS}
 
 clean:
 	rm -rf ${blddir}/*
-	
-mkdir:
-	-mkdir -p ${blddir}/samples
-#	-mkdir -p ${blddir}/test
 
-#${SYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
-
-#${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_CS} ${FLAGS_EXE} -lssl
-
-#${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE} 
-
-#${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_AS} ${FLAGS_EXE} -lssl
-
-${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c
-	${CC} -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
-
-${ASYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c
-	${CC} -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE}
-
-${MQTTLIB_C_TARGET}: ${SOURCE_FILES_C} ${HEADERS_C}
-	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_C} ${LDFLAGS_C}
-	-ln -s lib$(MQTTLIB_C).so.${VERSION}  ${blddir}/lib$(MQTTLIB_C).so.${MAJOR_VERSION}
-	-ln -s lib$(MQTTLIB_C).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_C).so
-
-${MQTTLIB_CS_TARGET}: ${SOURCE_FILES_CS} ${HEADERS_C}
-	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_CS} -DOPENSSL ${LDFLAGS_CS}
-	-ln -s lib$(MQTTLIB_CS).so.${VERSION}  ${blddir}/lib$(MQTTLIB_CS).so.${MAJOR_VERSION}
-	-ln -s lib$(MQTTLIB_CS).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_CS).so
-
-${MQTTLIB_A_TARGET}: ${SOURCE_FILES_A} ${HEADERS_A}
-	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_A} ${LDFLAGS_A}
-	-ln -s lib$(MQTTLIB_A).so.${VERSION}  ${blddir}/lib$(MQTTLIB_A).so.${MAJOR_VERSION}
-	-ln -s lib$(MQTTLIB_A).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_A).so
-
-${MQTTLIB_AS_TARGET}: ${SOURCE_FILES_AS} ${HEADERS_A}
-	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_AS} -DOPENSSL ${LDFLAGS_AS}
-	-ln -s lib$(MQTTLIB_AS).so.${VERSION}  ${blddir}/lib$(MQTTLIB_AS).so.${MAJOR_VERSION}
-	-ln -s lib$(MQTTLIB_AS).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_AS).so
-
-${MQTTVERSION_TARGET}: $(srcdir)/MQTTVersion.c $(srcdir)/MQTTAsync.h
-	${CC} ${FLAGS_EXE} -o $@ -l${MQTTLIB_A} $(srcdir)/MQTTVersion.c -ldl
-
-strip_options:
-	$(eval INSTALL_OPTS := -s)
-
-install-strip: build strip_options install
-
-install: build 
-	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_C_TARGET} $(DESTDIR)${libdir}
-	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_CS_TARGET} $(DESTDIR)${libdir}
-	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_A_TARGET} $(DESTDIR)${libdir}
-	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_AS_TARGET} $(DESTDIR)${libdir}
-	$(INSTALL_PROGRAM) ${INSTALL_OPTS} ${MQTTVERSION_TARGET} $(DESTDIR)${bindir}
-	/sbin/ldconfig $(DESTDIR)${libdir}
-	ln -s lib$(MQTTLIB_C).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so
-	ln -s lib$(MQTTLIB_CS).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so
-	ln -s lib$(MQTTLIB_A).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
-	ln -s lib$(MQTTLIB_AS).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so
-	$(INSTALL_DATA) ${srcdir}/MQTTAsync.h $(DESTDIR)${includedir}
-	$(INSTALL_DATA) ${srcdir}/MQTTClient.h $(DESTDIR)${includedir}
-	$(INSTALL_DATA) ${srcdir}/MQTTClientPersistence.h $(DESTDIR)${includedir}
-
-uninstall:
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so.${VERSION}
-	rm $(DESTDIR)${bindir}/MQTTVersion
-	/sbin/ldconfig $(DESTDIR)${libdir}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so
-	rm $(DESTDIR)${includedir}/MQTTAsync.h
-	rm $(DESTDIR)${includedir}/MQTTClient.h 
-	rm $(DESTDIR)${includedir}/MQTTClientPersistence.h 
-
-html:
-	-mkdir -p ${blddir}/doc
-	cd ${srcdir}; $(DOXYGEN_COMMAND) ../doc/DoxyfileV3ClientAPI
-	cd ${srcdir}; $(DOXYGEN_COMMAND) ../doc/DoxyfileV3AsyncAPI
-	cd ${srcdir}; $(DOXYGEN_COMMAND) ../doc/DoxyfileV3ClientInternal
-
-endif
-
-
-
-ifeq ($(OSTYPE),Darwin)
-
-CC ?= gcc -ggdb -O0
-
-ifndef INSTALL
-INSTALL = install
-endif
-INSTALL_PROGRAM = $(INSTALL)
-INSTALL_DATA =  $(INSTALL) -m 644
-DOXYGEN_COMMAND = doxygen
-
-MAJOR_VERSION = 1
-MINOR_VERSION = 0
-VERSION = ${MAJOR_VERSION}.${MINOR_VERSION}
-
-MQTTLIB_C_TARGET = ${blddir}/lib${MQTTLIB_C}.so.${VERSION}
-MQTTLIB_CS_TARGET = ${blddir}/lib${MQTTLIB_CS}.so.${VERSION}
-MQTTLIB_A_TARGET = ${blddir}/lib${MQTTLIB_A}.so.${VERSION}
-MQTTLIB_AS_TARGET = ${blddir}/lib${MQTTLIB_AS}.so.${VERSION}
-MQTTVERSION_TARGET = ${blddir}/MQTTVersion
-
-CCFLAGS_SO = -ggdb -fPIC -O0 -Wall -fvisibility=hidden -Wno-deprecated-declarations -DUSE_NAMED_SEMAPHORES
-FLAGS_EXE = -I ${srcdir} -lpthread -L ${blddir}
-
-LDFLAGS_C = -shared -Wl,-install_name,lib$(MQTTLIB_C).so.${MAJOR_VERSION} -Wl,-init,_MQTTClient_init -lpthread
-LDFLAGS_CS = -shared -Wl,-install_name,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -Wl,-init,_MQTTClient_init
-LDFLAGS_A = -shared -Wl,-install_name,lib${MQTTLIB_A}.so.${MAJOR_VERSION} -Wl,-init,_MQTTAsync_init -lpthread
-LDFLAGS_AS = -shared -Wl,-install_name,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -lpthread -ldl -lcrypto -lssl -Wl,-init,_MQTTAsync_init
-
-all: build
-	
-build: | mkdir ${MQTTLIB_C_TARGET} ${MQTTLIB_CS_TARGET} ${MQTTLIB_A_TARGET} ${MQTTLIB_AS_TARGET} ${MQTTVERSION_TARGET} ${SYNC_SAMPLES} ${ASYNC_SAMPLES} ${SYNC_TESTS} ${SYNC_SSL_TESTS} ${ASYNC_TESTS} ${ASYNC_SSL_TESTS}
-
-clean:
-	rm -rf ${blddir}/*
-	
 mkdir:
 	-mkdir -p ${blddir}/samples
 	-mkdir -p ${blddir}/test
+	echo OSTYPE is $(OSTYPE)
 
-#${SYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
+${SYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_C_TARGET)
+	${CC} -g -o $@ $< -l${MQTTLIB_C} ${FLAGS_EXE}
 
-#${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-#	${CC} -g -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_CS} ${FLAGS_EXE} -lssl
+${SYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_CS_TARGET)
+	${CC} -g -o $@ $< -l${MQTTLIB_CS} ${FLAGS_EXES}
 
-#${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-#	${CC} -g -ggdb -O0 -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE} 
+${ASYNC_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_CS_TARGET)
+	${CC} -g -o $@ $< -l${MQTTLIB_A} ${FLAGS_EXE}
 
-#${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c
-#	${CC} -g -ggdb -O0 -o ${blddir}/test/${basename ${+F}} $< -l${MQTTLIB_AS} ${FLAGS_EXE} -lssl
+${ASYNC_SSL_TESTS}: ${blddir}/test/%: ${srcdir}/../test/%.c $(MQTTLIB_CS_TARGET) $(MQTTLIB_AS_TARGET)
+	${CC} -g -o $@ $< -l${MQTTLIB_AS} ${FLAGS_EXES}
 
-${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c
-	${CC} -ggdb -O0 -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_C} ${FLAGS_EXE}
+${SYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c $(MQTTLIB_C_TARGET)
+	${CC} -o $@  ${srcdir}/cJSON.c $< -l${MQTTLIB_C} ${FLAGS_EXE}
 
-${ASYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c
-	${CC} -ggdb -O0 -o ${blddir}/samples/${basename ${+F}} $< -l${MQTTLIB_A} ${FLAGS_EXE}
+${ASYNC_SAMPLES}: ${blddir}/samples/%: ${srcdir}/samples/%.c $(MQTTLIB_A_TARGET)
+	${CC} -o $@ ${srcdir}/cJSON.c $< -l${MQTTLIB_A} ${FLAGS_EXE}
 
 ${MQTTLIB_C_TARGET}: ${SOURCE_FILES_C} ${HEADERS_C}
+	$(SED_COMMAND) $(srcdir)/MQTTClient.c
 	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_C} ${LDFLAGS_C}
 	-ln -s lib$(MQTTLIB_C).so.${VERSION}  ${blddir}/lib$(MQTTLIB_C).so.${MAJOR_VERSION}
 	-ln -s lib$(MQTTLIB_C).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_C).so
 
 ${MQTTLIB_CS_TARGET}: ${SOURCE_FILES_CS} ${HEADERS_C}
+	$(SED_COMMAND) $(srcdir)/MQTTClient.c
 	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_CS} -DOPENSSL ${LDFLAGS_CS}
 	-ln -s lib$(MQTTLIB_CS).so.${VERSION}  ${blddir}/lib$(MQTTLIB_CS).so.${MAJOR_VERSION}
 	-ln -s lib$(MQTTLIB_CS).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_CS).so
 
 ${MQTTLIB_A_TARGET}: ${SOURCE_FILES_A} ${HEADERS_A}
+	$(SED_COMMAND) $(srcdir)/MQTTAsync.c
 	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_A} ${LDFLAGS_A}
 	-ln -s lib$(MQTTLIB_A).so.${VERSION}  ${blddir}/lib$(MQTTLIB_A).so.${MAJOR_VERSION}
 	-ln -s lib$(MQTTLIB_A).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_A).so
 
 ${MQTTLIB_AS_TARGET}: ${SOURCE_FILES_AS} ${HEADERS_A}
+	$(SED_COMMAND) $(srcdir)/MQTTAsync.c 
 	${CC} ${CCFLAGS_SO} -o $@ ${SOURCE_FILES_AS} -DOPENSSL ${LDFLAGS_AS}
 	-ln -s lib$(MQTTLIB_AS).so.${VERSION}  ${blddir}/lib$(MQTTLIB_AS).so.${MAJOR_VERSION}
 	-ln -s lib$(MQTTLIB_AS).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_AS).so
 
-${MQTTVERSION_TARGET}: $(srcdir)/MQTTVersion.c $(srcdir)/MQTTAsync.h
+${MQTTVERSION_TARGET}: $(srcdir)/MQTTVersion.c $(srcdir)/MQTTAsync.h ${MQTTLIB_A_TARGET} $(MQTTLIB_CS_TARGET)
 	${CC} ${FLAGS_EXE} -o $@ -l${MQTTLIB_A} $(srcdir)/MQTTVersion.c -ldl
 
 strip_options:
@@ -299,7 +221,7 @@ strip_options:
 
 install-strip: build strip_options install
 
-install: build 
+install: build
 	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_C_TARGET} $(DESTDIR)${libdir}
 	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_CS_TARGET} $(DESTDIR)${libdir}
 	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_A_TARGET} $(DESTDIR)${libdir}
@@ -326,13 +248,11 @@ uninstall:
 	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
 	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so
 	rm $(DESTDIR)${includedir}/MQTTAsync.h
-	rm $(DESTDIR)${includedir}/MQTTClient.h 
-	rm $(DESTDIR)${includedir}/MQTTClientPersistence.h 
+	rm $(DESTDIR)${includedir}/MQTTClient.h
+	rm $(DESTDIR)${includedir}/MQTTClientPersistence.h
 
 html:
 	-mkdir -p ${blddir}/doc
 	cd ${srcdir}; $(DOXYGEN_COMMAND) ../doc/DoxyfileV3ClientAPI
 	cd ${srcdir}; $(DOXYGEN_COMMAND) ../doc/DoxyfileV3AsyncAPI
 	cd ${srcdir}; $(DOXYGEN_COMMAND) ../doc/DoxyfileV3ClientInternal
-
-endif

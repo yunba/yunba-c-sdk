@@ -150,7 +150,8 @@ BE*/
 typedef struct
 {
 	int socket;
-	time_t lastContact;
+	time_t lastSent;
+	time_t lastReceived;
 #if defined(OPENSSL)
 	SSL* ssl;
 	SSL_CTX* ctx;
@@ -163,8 +164,8 @@ typedef struct
 typedef struct
 {
 	char* clientID;					/**< the string id of the client */
-	char* username;					/**< MQTT v3.1 user name */
-	char* password;					/**< MQTT v3.1 password */
+	const char* username;					/**< MQTT v3.1 user name */
+	const char* password;					/**< MQTT v3.1 password */
 	unsigned int cleansession : 1;	/**< MQTT clean session flag */
 	unsigned int connected : 1;		/**< whether it is currently connected */
 	unsigned int good : 1; 			/**< if we have an error on the socket we turn this off */
@@ -183,6 +184,7 @@ typedef struct
 	void* phandle;  /* the persistence handle */
 	MQTTClient_persistence* persistence; /* a persistence implementation */
 	void* context; /* calling context - used when calling disconnect_internal */
+	int MQTTVersion;
 #if defined(OPENSSL)
 	MQTTClient_SSLOptions *sslopts;
 	SSL_SESSION* session;    /***< SSL session pointer for fast handhake */
@@ -197,7 +199,7 @@ int clientSocketCompare(void* a, void* b);
  */
 typedef struct
 {
-	char* version;
+	const char* version;
 	List* clients;
 } ClientStates;
 

@@ -88,14 +88,19 @@ General questions about the MQTT protocol are discussed in the [MQTT Google Grou
 There is much more information available via the [MQTT community site](http://mqtt.org).
 
 
-SAMPLE:
+## 编译:
+
+```
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/build/output
 make
-cd build/output/
+cd build/output/samples/
+```
 
 ## 例子
 
+```
 ./stdinpub_present <topic> --appkey <appkey> --deviceid <device-id>
-
+```
 
 ## 第三方库
 
@@ -104,6 +109,21 @@ cd build/output/
 使用时请留意。
 
 STDOUT_LOG:
+
+```
 export MQTT_C_CLIENT_TRACE=stdout
-export MQTT_C_CLIENT_TRACE=ON
+
 export MQTT_C_CLIENT_TRACE_LEVEL=TRACE_PROTOCOL
+```
+
+##　编译环境
+
+在以下环境编译测试通过。
+
+ubuntu 12.04, gcc version 4.6.4.
+
+mac, Apple LLVM version 6.1.0
+
+##　注意
+
+该sdk 不支持标准的mqtt, mqtt v3.1.1

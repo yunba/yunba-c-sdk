@@ -1,5 +1,5 @@
 <!--*******************************************************************************
-  Copyright (c) 2012, 2013 IBM Corp.
+  Copyright (c) 2012, 2015 IBM Corp.
  
   All rights reserved. This program and the accompanying materials
   are made available under the terms of the Eclipse Public License v1.0
@@ -24,14 +24,14 @@
   </taskdef>
 
   <property name="output.folder" value="build/output" /> 
-  <property name="release.version" value="0.9.0" />
+  <property name="release.version" value="1.0.3" />
 
   <property name="libname" value="mqttv3c" />
   <property name="libname.ssl" value="mqttv3cs" />
   <property name="libname.async" value="mqttv3a" />
   <property name="libname.async.ssl" value="mqttv3as" />
   <property name="ssl" value="yes" />
-  <property name="test.hostname" value="m2m.eclipse.org"/>
+  <property name="test.hostname" value="iot.eclipse.org"/>
   <property name="test.port" value="18883"/>
   <if>
     <os family="windows"/>
@@ -101,7 +101,7 @@
     <else> 
       <exec executable="./${aTest}" failonerror="true" dir="${output.folder}/test" > 
         <arg value="--connection" />
-        <arg value="tcp://${test.hostname}:${test.port}" />
+        <arg value="tcp://${test.hostname}:1883" />
         <env key="LD_LIBRARY_PATH" path="${output.folder}" />
         <env key="DYLD_LIBRARY_PATH" path="${output.folder}" />
       </exec>
@@ -210,8 +210,8 @@
       <fileset dir="src/samples" includes="*"/>
     </copy> 
     <delete>
-       <fileset dir="." includes="eclipse-paho-mqtt-c-windows-incubation-${release.version}.zip"/>
-       <fileset dir="." includes="eclipse-paho-mqtt-c-${os.family}-incubation-${release.version}.tar.gz"/>
+       <fileset dir="." includes="eclipse-paho-mqtt-c-windows-${release.version}.zip"/>
+       <fileset dir="." includes="eclipse-paho-mqtt-c-${os.family}-${release.version}.tar.gz"/>
     </delete>
 
    <if>
@@ -219,7 +219,7 @@
     <then>
     <exec executable="c:\cygwin\bin\zip.exe" failonerror="true" dir="${output.folder}">
       <arg value="-r"/>
-      <arg value="eclipse-paho-mqtt-c-windows-incubation-${release.version}.zip"/>
+      <arg value="eclipse-paho-mqtt-c-windows-${release.version}.zip"/>
       <arg value="about.html"/>
       <arg value="notice.html"/>
       <arg value="README.md"/>
@@ -235,7 +235,7 @@
     <else>
     <exec executable="tar" failonerror="true" dir="${output.folder}">
       <arg value="czf"/>
-      <arg value="eclipse-paho-mqtt-c-${os.family}-incubation-${release.version}.tar.gz"/>
+      <arg value="eclipse-paho-mqtt-c-${os.family}-${release.version}.tar.gz"/>
       <arg value="about.html"/>
       <arg value="notice.html"/>
       <arg value="README.md"/>
@@ -255,7 +255,7 @@
     <then>
     <exec executable="tar" failonerror="true" dir=".">
       <arg value="czf"/>
-      <arg value="${output.folder}/eclipse-paho-mqtt-c-src-incubation-${release.version}.tar.gz"/>
+      <arg value="${output.folder}/eclipse-paho-mqtt-c-src-${release.version}.tar.gz"/>
       <arg value="about.html"/>
       <arg value="notice.html"/>
       <arg value="README.md"/>

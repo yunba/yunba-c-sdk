@@ -15,6 +15,8 @@
  *    Ian Craggs, Allan Stockdill-Mander - SSL updates
  *    Ian Craggs - fix for bug 413429 - connectionLost not called
  *    Ian Craggs - fix for bug 421103 - trying to write to same socket, in retry
+ *    Rong Xiang, Ian Craggs - C++ compatibility
+ *    Ian Craggs - turn off DUP flag for PUBREL - MQTT 3.1.1
  *******************************************************************************/
 
 /**
@@ -26,6 +28,7 @@
 
 
 #include <stdlib.h>
+#include <math.h>
 
 #include "MQTTProtocolClient.h"
 #if !defined(NO_PERSISTENCE)
@@ -63,7 +66,7 @@ unsigned long long int randm(int n)
         unsigned long long int y;
         srand(getpid());
         x = rand() / (double)RAND_MAX;
-        y = (unsigned long long int) (x * pow(10.0, n*1.0));
+        y = (uint64_t) (x * pow(10.0, n*1.0));
         return y;
 }
 
@@ -72,7 +75,7 @@ uint64_t generate_uuid() {
         gettimeofday(&t_start, NULL);
         uint64_t ms = ((uint64_t)t_start.tv_sec * 1000) + (uint64_t)t_start.tv_usec/1000;
         uint64_t id = ms << (64 - 41);
-	id |= (uint64_t)(randm(16) % (unsigned long long int)(pow(2, (64 - 41))));
+	id |= (uint64_t)(randm(16) % (uint64_t)(pow(2, (64 - 41))));
         return id;
 }
 
@@ -174,7 +177,6 @@ int MQTTProtocol_startPublish(Clients* pubclient, Publish* publish, int qos, int
 	FUNC_ENTRY;
 	if (qos > 0)
 	{
-		p.msgId = publish->msgId = MQTTProtocol_assignMsgId(pubclient);
 		*mm = MQTTProtocol_createMessage(publish, mm, qos, retained);
 		ListAppend(pubclient->outboundMsgs, *mm, (*mm)->len);
 		/* we change these pointers to the saved message location just in case the packet could not be written
@@ -634,7 +636,9 @@ void MQTTProtocol_keepalive(time_t now)
 	{
 		Clients* client =	(Clients*)(current->content);
 		ListNextElement(bstate->clients, &current); 
-		if (client->connected && client->keepAliveInterval > 0 && (difftime(now, client->net.lastContact) >= MAX(client->keepAliveInterval-PING_AHEAD_KEEPALIVE, 1)))
+		if (client->connected && client->keepAliveInterval > 0 &&
+			(difftime(now, client->net.lastSent) >= client->keepAliveInterval ||
+					difftime(now, client->net.lastReceived) >= client->keepAliveInterval))
 		{
 			if (client->ping_outstanding == 0)
 			{
@@ -642,19 +646,19 @@ void MQTTProtocol_keepalive(time_t now)
 				{
 					if (MQTTPacket_send_pingreq(&client->net, client->clientID) != TCPSOCKET_COMPLETE)
 					{
-						Log(TRACE_MIN, -1, "Error sending PINGREQ for client %s on socket %d, disconnecting", client->clientID, client->net.socket);
+						Log(TRACE_PROTOCOL, -1, "Error sending PINGREQ for client %s on socket %d, disconnecting", client->clientID, client->net.socket);
 						MQTTProtocol_closeSession(client, 1);
 					}
 					else
 					{
-						client->net.lastContact = now;
+						client->net.lastSent = now;
 						client->ping_outstanding = 1;
 					}
 				}
 			}
 			else
 			{
-				Log(TRACE_MIN, -1, "PINGRESP not received in keepalive interval for client %s on socket %d, disconnecting", client->clientID, client->net.socket);
+				Log(TRACE_PROTOCOL, -1, "PINGRESP not received in keepalive interval for client %s on socket %d, disconnecting", client->clientID, client->net.socket);
 				MQTTProtocol_closeSession(client, 1);
 			}
 		}
@@ -667,14 +671,15 @@ void MQTTProtocol_keepalive(time_t now)
  * MQTT retry processing per client
  * @param now current time
  * @param client - the client to which to apply the retry processing
+ * @param regardless boolean - retry packets regardless of retry interval (used on reconnect)
  */
-void MQTTProtocol_retries(time_t now, Clients* client)
+void MQTTProtocol_retries(time_t now, Clients* client, int regardless)
 {
 	ListElement* outcurrent = NULL;
 
 	FUNC_ENTRY;
 
-	if (client->retryInterval <= 0) /* 0 or -ive retryInterval turns off retry */
+	if (!regardless && client->retryInterval <= 0) /* 0 or -ive retryInterval turns off retry except on reconnect */
 		goto exit;
 
 	while (client && ListNextElement(client->outboundMsgs, &outcurrent) &&
@@ -682,7 +687,7 @@ void MQTTProtocol_retries(time_t now, Clients* client)
 		   Socket_noPendingWrites(client->net.socket)) /* there aren't any previous packets still stacked up on the socket */
 	{
 		Messages* m = (Messages*)(outcurrent->content);
-		if (difftime(now, m->lastTouch) > max(client->retryInterval, 10))
+		if (regardless || difftime(now, m->lastTouch) > max(client->retryInterval, 10))
 		{
 			if (m->qos == 1 || (m->qos == 2 && m->nextMessageType == PUBREC))
 			{
@@ -698,7 +703,7 @@ void MQTTProtocol_retries(time_t now, Clients* client)
 				if (rc == SOCKET_ERROR)
 				{
 					client->good = 0;
-					Log(TRACE_MIN, 8, NULL, client->clientID, client->net.socket,
+					Log(TRACE_PROTOCOL, 29, NULL, client->clientID, client->net.socket,
 												Socket_getpeer(client->net.socket));
 					MQTTProtocol_closeSession(client, 1);
 					client = NULL;
@@ -713,10 +718,10 @@ void MQTTProtocol_retries(time_t now, Clients* client)
 			else if (m->qos && m->nextMessageType == PUBCOMP)
 			{
 				Log(TRACE_MIN, 7, NULL, "PUBREL", client->clientID, client->net.socket, m->msgid);
-				if (MQTTPacket_send_pubrel(m->msgid, 1, &client->net, client->clientID) != TCPSOCKET_COMPLETE)
+				if (MQTTPacket_send_pubrel(m->msgid, 0, &client->net, client->clientID) != TCPSOCKET_COMPLETE)
 				{
 					client->good = 0;
-					Log(TRACE_MIN, 8, NULL, client->clientID, client->net.socket,
+					Log(TRACE_PROTOCOL, 29, NULL, client->clientID, client->net.socket,
 							Socket_getpeer(client->net.socket));
 					MQTTProtocol_closeSession(client, 1);
 					client = NULL;
@@ -736,8 +741,9 @@ exit:
  * MQTT retry protocol and socket pending writes processing.
  * @param now current time
  * @param doRetry boolean - retries as well as pending writes?
+ * @param regardless boolean - retry packets regardless of retry interval (used on reconnect)
  */
-void MQTTProtocol_retry(time_t now, int doRetry)
+void MQTTProtocol_retry(time_t now, int doRetry, int regardless)
 {
 	ListElement* current = NULL;
 
@@ -758,7 +764,7 @@ void MQTTProtocol_retry(time_t now, int doRetry)
 		if (Socket_noPendingWrites(client->net.socket) == 0)
 			continue;
 		if (doRetry)
-			MQTTProtocol_retries(now, client);
+			MQTTProtocol_retries(now, client, regardless);
 	}
 	FUNC_EXIT;
 }
@@ -786,15 +792,15 @@ void MQTTProtocol_freeClient(Clients* client)
 	if (client->sslopts)
 	{
 		if (client->sslopts->trustStore)
-			free(client->sslopts->trustStore);
+			free((void*)client->sslopts->trustStore);
 		if (client->sslopts->keyStore)
-			free(client->sslopts->keyStore);
+			free((void*)client->sslopts->keyStore);
 		if (client->sslopts->privateKey)
-			free(client->sslopts->privateKey);
+			free((void*)client->sslopts->privateKey);
 		if (client->sslopts->privateKeyPassword)
-			free(client->sslopts->privateKeyPassword);
+			free((void*)client->sslopts->privateKeyPassword);
 		if (client->sslopts->enabledCipherSuites)
-			free(client->sslopts->enabledCipherSuites);
+			free((void*)client->sslopts->enabledCipherSuites);
 		free(client->sslopts);
 	}
 #endif
@@ -834,3 +840,44 @@ void MQTTProtocol_freeMessageList(List* msgList)
 	FUNC_EXIT;
 }
 
+
+/**
+* Copy no more than dest_size -1 characters from the string pointed to by src to the array pointed to by dest.
+* The destination string will always be null-terminated.
+* @param dest the array which characters copy to
+* @param src the source string which characters copy from
+* @param dest_size the size of the memory pointed to by dest: copy no more than this -1 (allow for null).  Must be >= 1
+* @return the destination string pointer
+*/
+char* MQTTStrncpy(char *dest, const char *src, size_t dest_size)
+{
+  size_t count = dest_size;
+  char *temp = dest;
+
+  FUNC_ENTRY; 
+  if (dest_size < strlen(src))
+    Log(TRACE_MIN, -1, "the src string is truncated");
+
+  /* We must copy only the first (dest_size - 1) bytes */
+  while (count > 1 && (*temp++ = *src++))
+    count--;
+
+  *temp = '\0';
+
+  FUNC_EXIT;
+  return dest;
+}
+
+
+/**
+* Duplicate a string, safely, allocating space on the heap
+* @param src the source string which characters copy from
+* @return the duplicated, allocated string
+*/
+char* MQTTStrdup(const char* src)
+{
+	size_t mlen = strlen(src) + 1;
+	char* temp = malloc(mlen);
+	MQTTStrncpy(temp, src, mlen);
+	return temp;
+}

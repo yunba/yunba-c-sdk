@@ -189,7 +189,7 @@ int main(int argc, char** argv)
 	topic = argv[1];
 	printf("Using topic %s\n", topic);
 
-	int res = MQTTClient_setup_with_appkey_and_deviceid(opts.appkey, opts.deviceid, &my_reg_info);
+	int res = MQTTClient_setup_with_appkey_and_deviceid_v2(opts.appkey, opts.deviceid, &my_reg_info);
 	if (res < 0) {
 		printf("can't get reg info\n");
 		return 0;
@@ -197,7 +197,7 @@ int main(int argc, char** argv)
 
 	printf("Get reg info: client_id:%s,username:%s,password:%s, devide_id:%s\n", my_reg_info.client_id, my_reg_info.username, my_reg_info.password, my_reg_info.device_id);
 
-	res = MQTTClient_get_host(opts.appkey, url);
+	res = MQTTClient_get_host_v2(opts.appkey, url);
 	if (res < 0) {
 		printf("can't get host info\n");
 		return 0;
@@ -208,7 +208,7 @@ int main(int argc, char** argv)
 	MQTTClient_get_broker(&client, broker);
 	printf("get broker:%s\n", broker);
 
-//	MQTTClient_set_broker(&client, "localhost");
+//	MQTTClient_set_broker(&client, "abj-front-12");
 
 	MQTTClient_get_broker(&client, broker);
 	printf("get broker:%s\n", broker);
@@ -218,7 +218,7 @@ int main(int argc, char** argv)
 
 	rc = MQTTClient_setCallbacks(client, NULL, connectionLost, messageArrived, NULL, extendedCmdArrive);
 
-	conn_opts.keepAliveInterval = 100;
+	conn_opts.keepAliveInterval = 300;
 	conn_opts.reliable = 0;
 	conn_opts.cleansession = 1;
 	conn_opts.username = my_reg_info.username;
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
 
 	buffer = malloc(opts.maxdatalen);
 
-	rc = MQTTClient_subscribe(client, topic);
+	rc = MQTTClient_subscribe(client, topic, 1);
 	printf("subscribe topic:%s, %i\n", topic, rc);
 
 	if (opts.alias != NULL) {
@@ -236,8 +236,8 @@ int main(int argc, char** argv)
 		MQTTClient_set_alias(client, opts.alias);
 	}
 	//MQTTClient_presence(client, topic);
-
-	int ret = MQTTClient_get_aliaslist(client, topic);
+	int ret;
+	ret = MQTTClient_get_aliaslist(client, topic);
 	printf("get aliaslist:%i, topic:%s\n", ret, topic);
 	ret = MQTTClient_get_topic(client, "band1111");
 	printf("get topic:%i\n", ret);
@@ -246,6 +246,20 @@ int main(int argc, char** argv)
 
 	ret = MQTTClient_report(client, "domytest", "abc");
 	printf("report status:%i\n", ret);
+
+	MQTTClient_get_status2(client, "baidu");
+	MQTTClient_get_topiclist2(client, topic);
+	MQTTClient_get_aliaslist2(client, topic);
+
+	sleep(7);
+	cJSON *apn_json, *aps;
+	cJSON *Opt = cJSON_CreateObject();
+	cJSON_AddStringToObject(Opt,"time_to_live",  "120");
+	cJSON_AddStringToObject(Opt,"time_delay",  "1100");
+	cJSON_AddStringToObject(Opt,"apn_json",  "{\"aps\":{\"alert\":\"FENCE alarm\", \"sound\":\"alarm.mp3\"}}");
+	ret = MQTTClient_publish2(client, topic, strlen("test"), "test", Opt);
+	cJSON_Delete(Opt);
+	printf("publish2 status:%i\n", ret);
 	
 	while (!toStop)
 	{
