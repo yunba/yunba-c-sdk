@@ -185,7 +185,7 @@ int tcp_post_json(char *json_data, char *hostname, uint16_t port, char *path, CA
 }
 
 static int reg_cb(const char *json_data) {
-	int ret = 0;
+	int ret = -1;
 	char buf[500];
 	memset(buf, 0, sizeof(buf));
 	memcpy(buf, json_data, strlen(json_data));
@@ -194,13 +194,19 @@ static int reg_cb(const char *json_data) {
 	if (root) {
 		int ret_size = cJSON_GetArraySize(root);
 		if (ret_size >= 4) {
-			strcpy(reg_info.client_id, cJSON_GetObjectItem(root,"c")->valuestring);
-			strcpy(reg_info.username, cJSON_GetObjectItem(root,"u")->valuestring);
-			strcpy(reg_info.password, cJSON_GetObjectItem(root,"p")->valuestring);
-			strcpy(reg_info.device_id, cJSON_GetObjectItem(root,"d")->valuestring);
-		} else
-			ret = -1;
-
+			cJSON * pClientId = cJSON_GetObjectItem(root,"c");
+			cJSON * pUsername = cJSON_GetObjectItem(root,"u");
+			cJSON * pPassword = cJSON_GetObjectItem(root,"p");
+			cJSON * pDevId = cJSON_GetObjectItem(root,"d");
+			if (pClientId != NULL && pUsername != NULL &&
+					pPassword != NULL && pDevId != NULL) {
+				strcpy(reg_info.client_id, pClientId->valuestring);
+				strcpy(reg_info.username, pUsername->valuestring);
+				strcpy(reg_info.password, pPassword->valuestring);
+				strcpy(reg_info.device_id, pDevId->valuestring);
+				ret = 0;
+			}
+		}
 		cJSON_Delete(root);
 	}
 	return ret;
@@ -289,17 +295,20 @@ int MQTTClient_setup_with_appkey_and_deviceid_v2(char* appkey, char *deviceid, R
 static char url_host[200];
 static size_t get_broker_cb(const char *json_data)
 {
-	int ret = 0;
+	int ret = -1;
 	char buf[500];
 	memset(buf, 0, sizeof(buf));
 	memcpy(buf, json_data, strlen(json_data));
 	cJSON *root = cJSON_Parse(buf);
 	if (root) {
 		int ret_size = cJSON_GetArraySize(root);
-		if (ret_size >= 1)
-			strcpy(url_host, cJSON_GetObjectItem(root,"c")->valuestring);
-		else
-			ret = -1;
+		if (ret_size >= 1) {
+			cJSON * pURL = cJSON_GetObjectItem(root,"c");
+			if (pURL != NULL) {
+				strcpy(url_host, pURL->valuestring);
+				ret = 0;
+			}
+		}
 		cJSON_Delete(root);
 	}
 	return ret;
