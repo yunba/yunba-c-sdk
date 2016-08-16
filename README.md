@@ -1,106 +1,21 @@
-# Eclipse Paho MQTT C client (yunba sdk check develop branch)
+## 环境需求
+- GNU Make,gcc
+- OpenSSL
+- 标准C库
 
+## 编译和使用方法
 
-This repository contains the source code for the [Eclipse Paho](http://eclipse.org/paho) MQTT C client library. 
+- 使用 make 来生成可执行文件，本 demo 包含一份 makefile，在 makefile 所在的路径下执行`make`，成功后会在 /yunba-c-sdk-master/build/output/sample/ 下生成 stdouta\_demo 和 stdinpub\_present 两个可执行文件。*注意在使用 make 的时候如果你的电脑有多于一个的 C 标准库，就需要在 make 的时候加上`-stdlib=libstdc++`来选择标准库，否则会产生错误。*
 
-This code builds libraries which enable applications to connect to an [MQTT](http://mqtt.org) broker to publish messages, and to subscribe to topics and receive published messages.
+- 使用 bash 或其它命令行工具进入可执行文件的路径，然后执行该程序。
 
-Both synchronous and asynchronous modes of operation are supported.
+- stdinpub\_present 的使用方法是 `stdinpub\_present <topic name> --appkey <appkey> --deviceid <deviceid> --retained --qos <qos> --delimiter <delimiter>`。`<topic name>`和`<appkey>`是必须的，其余为可选项，不填的话使用默认值，其中`<deviceid>`可以使用已有的，没有的话系统会自动给您分配一个，用以在后台区分用户；`retained`默认关闭，打开后可以收到自己发送的消息；`<delimiter>`为分隔符，打出该字符后会发送该字符前的字符，默认为`\n`。
+	- 示例：`./stdinpub_present test --appkey XXXXXXXXXXXXXXXXXXXXXXXX --retained`
 
-## Build requirements / compilation
+- 运行成功后会订阅该频道，并向该频道发送一个消息，您可以在 Portal 中看到。还会向服务器询问该 topic 的 aliaslist、topic 和 status 的信息，获取完以后当您按回车之后会发送在分割符`<delimiter>`之前的字符。
 
-The build process requires GNU Make and gcc, and also requires OpenSSL libraries and includes to be available. There are make rules for a number of Linux "flavors" including ARM and s390, OS X, AIX and Solaris.
-
-The documentation requires doxygen and optionally graphviz. 
-
-Before compiling, set some environment variables (or pass these values to the make command directly) in order to configure library locations and other options.
-
-Specify the location of OpenSSL using `SSL_DIR`
-
-e.g. using [homebrew](http://mxcl.github.com/homebrew/) on OS X:
-
-`export SSL_DIR=/usr/local/Cellar/openssl/1.0.1e`
-
-Specify where the source files are in relation to where the make command is being executed.
-
-``export MQTTCLIENT_DIR=../src``
-
-To build the samples, enable the option (`BUILD_SAMPLES`), and specify the location of the code:
-
-```
-export BUILD_SAMPLES=YES
-export SAMPLES_DIR=../src/samples
-```
-
-One more useful environment variable is ``TARGET_PLATFORM``. This provides for cross-compilation. Currently the only recognised value is "Arm" - for instance to cross-compile a Linux ARM version of the libraries:
-
-``export TARGET_PLATFORM=Arm``
-
-## Libraries
-
-The Paho C client comprises four shared libraries:
-
- * libmqttv3a.so - asynchronous
- * libmqttv3as.so - asynchronous with SSL
- * libmqttv3c.so - "classic" / synchronous
- * libmqttv3cs.so - "classic" / synchronous with SSL
-
-## Usage and API
-
-Detailed API documentation is available by building the Doxygen docs in the  ``doc`` directory. A [snapshot is also available online](http://www.eclipse.org/paho/files/mqttdoc/Cclient/index.html).
-
-Samples are available in the Doxygen docs and also in ``src/samples`` for reference.
-
-Note that using the C headers from a C++ program requires the following declaration as part of the C++ code:
-
-```
-    extern "C" {
-    #include "MQTTClient.h"
-    #include "MQTTClientPersistence.h"
-    }
-```
-
-## Runtime tracing
-
-A number of environment variables control runtime tracing of the C library. 
-
-Tracing is switched on using ``MQTT_C_CLIENT_TRACE`` (a value of ON traces to stdout, any other value should specify a file to trace to). 
-
-The verbosity of the output is controlled using the  ``MQTT_C_CLIENT_TRACE_LEVEL`` environment variable - valid values are ERROR, PROTOCOL, MINIMUM, MEDIUM and MAXIMUM (from least to most verbose).
-
-The variable ``MQTT_C_CLIENT_TRACE_MAX_LINES`` limits the number of lines of trace that are output.
-
-```
-export MQTT_C_CLIENT_TRACE=ON
-export MQTT_C_CLIENT_TRACE_LEVEL=PROTOCOL
-```
-
-## Reporting bugs
-
-Please report bugs under the "MQTT-C" Component in [Eclipse Bugzilla](http://bugs.eclipse.org/bugs/) for the Paho Technology project.
-
-## More information
-
-Discussion of the Paho clients takes place on the [Eclipse paho-dev mailing list](https://dev.eclipse.org/mailman/listinfo/paho-dev).
-
-General questions about the MQTT protocol are discussed in the [MQTT Google Group](https://groups.google.com/forum/?hl=en-US&fromgroups#!forum/mqtt).
-
-There is much more information available via the [MQTT community site](http://mqtt.org).
-
-
-## 编译:
-
-```
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/build/output
-make
-cd build/output/samples/
-```
-
-## 例子
-
-```
-./stdinpub_present <topic> --appkey <appkey> --deviceid <device-id>
-```
+- stdouta\_demo 的使用方法与 stdinpub\_present 类似，只是没有了向服务器查询的过程。
+	- 示例：`./stdouta_demo tttest --appkey XXXXXXXXXXXXXXXXXXXXXXXX`
 
 ## 第三方库
 
@@ -122,8 +37,10 @@ export MQTT_C_CLIENT_TRACE_LEVEL=TRACE_PROTOCOL
 
 ubuntu 12.04, gcc version 4.6.4.
 
-mac, Apple LLVM version 6.1.0
+mac, Apple LLVM version 6.1.0／OS X 10.11.6
 
 ##　注意
 
 该sdk 不支持标准的mqtt, mqtt v3.1.1
+
+本例子基于 Eclipse paho
