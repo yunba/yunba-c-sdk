@@ -31,7 +31,7 @@ export MQTT_C_CLIENT_TRACE=stdout
 export MQTT_C_CLIENT_TRACE_LEVEL=TRACE_PROTOCOL
 ```
 
-##　编译环境
+## 编译环境
 
 在以下环境编译测试通过。
 
@@ -39,7 +39,7 @@ ubuntu 12.04, gcc version 4.6.4.
 
 mac, Apple LLVM version 6.1.0／OS X 10.11.6
 
-##　注意
+## 注意
 
 该sdk 不支持标准的mqtt, mqtt v3.1.1
 
