@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(MQTTCLIENT_H)
 #define MQTTCLIENT_H
 
@@ -826,3 +830,8 @@ DLLExport void MQTTClient_free(void* ptr);
 DLLExport void MQTTClient_destroy(MQTTClient* handle);
 
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
