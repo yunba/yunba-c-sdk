@@ -61,6 +61,9 @@ endif
 bindir = $(exec_prefix)/bin
 includedir = $(prefix)/include
 libdir = $(exec_prefix)/lib
+LDFLAGS = -L /usr/local/opt/openssl/lib
+CFLAGS = -I /usr/local/opt/openssl/include
+PKG_CONFIG_PATH = /usr/local/opt/openssl/lib/pkgconfig
 
 SOURCE_FILES = $(wildcard $(srcdir)/*.c)
 SOURCE_FILES_C = $(filter-out $(srcdir)/MQTTAsync.c $(srcdir)/MQTTVersion.c $(srcdir)/SSLSocket.c, $(SOURCE_FILES))
