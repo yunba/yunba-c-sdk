@@ -1,11 +1,18 @@
 ## 环境需求
+
 - GNU Make,gcc
 - OpenSSL
 - 标准C库
 
 ## 编译和使用方法
 
-- 使用 make 来生成可执行文件，本 demo 包含一份 makefile，在 makefile 所在的路径下执行`make`，成功后会在 /yunba-c-sdk-master/build/output/sample/ 下生成 stdouta\_demo 和 stdinpub\_present 两个可执行文件。*注意在使用 make 的时候如果你的电脑有多于一个的 C 标准库，就需要在 make 的时候加上`-stdlib=libstdc++`来选择标准库，否则会产生错误。*
+编译与安装：
+```
+make
+sudo make install
+```
+
+- 成功后会在 /yunba-c-sdk-master/build/output/sample/ 下生成 stdouta\_demo 和 stdinpub\_present 两个可执行文件。*注意在使用 make 的时候如果你的电脑有多于一个的 C 标准库，就需要在 make 的时候加上`-stdlib=libstdc++`来选择标准库，否则会产生错误。*
 
 - 使用 bash 或其它命令行工具进入可执行文件的路径，然后执行该程序。
 
@@ -16,6 +23,12 @@
 
 - stdouta\_demo 的使用方法与 stdinpub\_present 类似，只是没有了向服务器查询的过程。
 	- 示例：`./stdouta_demo tttest --appkey XXXXXXXXXXXXXXXXXXXXXXXX`
+
+卸载及清理：
+```
+sudo make uninstall
+make clean
+```
 
 ## 第三方库
 

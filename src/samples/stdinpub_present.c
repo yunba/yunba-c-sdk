@@ -68,6 +68,7 @@ void usage()
 	printf("  --maxdatalen 100\n");
 	printf("  --appkey xxxxxxxxxxxxxxxx\n");
 	printf("  --deviceid xxxxxxxxxxxxxxxx\n");
+	printf("  --alias <alias>\n");
 	exit(-1);
 }
 
@@ -209,9 +210,8 @@ int main(int argc, char** argv)
 	printf("get broker:%s\n", broker);
 
 //	MQTTClient_set_broker(&client, "abj-front-12");
-
-	MQTTClient_get_broker(&client, broker);
-	printf("get broker:%s\n", broker);
+//	MQTTClient_get_broker(&client, broker);
+//	printf("get broker:%s\n", broker);
 
 	signal(SIGINT, cfinish);
 	signal(SIGTERM, cfinish);
@@ -247,17 +247,31 @@ int main(int argc, char** argv)
 	ret = MQTTClient_report(client, "domytest", "abc");
 	printf("report status:%i\n", ret);
 
-	MQTTClient_get_status2(client, "baidu");
-	MQTTClient_get_topiclist2(client, topic);
-	MQTTClient_get_aliaslist2(client, topic);
+	ret = MQTTClient_get_status2(client, "baidu");
+	printf("MQTTClient_get_status2:%i\n", ret);
 
-	sleep(7);
+	if (opts.alias != NULL) {
+		ret = MQTTClient_get_topiclist2(client, opts.alias);
+		printf("MQTTClient_get_topiclist2:%i\n", ret);
+	}
+	ret = MQTTClient_get_aliaslist2(client, topic);
+	printf("MQTTClient_get_aliaslist2:%i\n", ret);
+
 	cJSON *apn_json, *aps;
 	cJSON *Opt = cJSON_CreateObject();
-	cJSON_AddStringToObject(Opt,"time_to_live",  "120");
-	cJSON_AddStringToObject(Opt,"time_delay",  "1100");
-	cJSON_AddStringToObject(Opt,"apn_json",  "{\"aps\":{\"alert\":\"FENCE alarm\", \"sound\":\"alarm.mp3\"}}");
+	cJSON_AddStringToObject(Opt, "time_to_live", "120");
+	cJSON_AddStringToObject(Opt, "time_delay", "1100");
+	cJSON_AddStringToObject(Opt, "qos", "1");
+	cJSON_AddStringToObject(Opt, "apn_json", "{\"aps\":{\"alert\":\"FENCE alarm\", \"sound\":\"alarm.mp3\"}}");
+
 	ret = MQTTClient_publish2(client, topic, strlen("test"), "test", Opt);
+	printf("MQTTClient_publish2: %d\n", ret);
+
+	if (opts.alias != NULL) {
+		MQTTClient_publish2_to_alias(client, opts.alias, strlen("test"), "test", Opt);
+		printf("MQTTClient_publish2_to_alias: %d\n", ret);
+	}
+
 	cJSON_Delete(Opt);
 	printf("publish2 status:%i\n", ret);
 	
