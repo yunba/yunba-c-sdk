@@ -12,7 +12,7 @@ make
 sudo make install
 ```
 
-- 成功后会在 /yunba-c-sdk-master/build/output/sample/ 下生成 stdouta_demo 和 stdinpub_present 两个可执行文件。*注意在使用 make 的时候如果你的电脑有多于一个的 C 标准库，就需要在 make 的时候加上`-stdlib=libstdc++`来选择标准库，否则会产生错误。*
+- 成功后会在 build/output/samples/ 下生成 stdouta_demo 和 stdinpub_present 两个可执行文件。*注意在使用 make 的时候如果你的电脑有多于一个的 C 标准库，就需要在 make 的时候加上`-stdlib=libstdc++`来选择标准库，否则会产生错误。*
 
 - 使用 bash 或其它命令行工具进入可执行文件的路径，然后执行该程序。
 
