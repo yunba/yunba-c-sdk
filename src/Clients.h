@@ -20,7 +20,7 @@
 #define CLIENTS_H
 
 #include <time.h>
-#include <inttypes.h>
+//#include <inttypes.h>
 #if defined(OPENSSL)
 #if defined(WIN32) || defined(WIN64)
 #include "winsock2.h"
@@ -46,6 +46,15 @@ BE*/
 /**
  * Stored publication data to minimize copying
  */
+typedef signed char  int8_t;
+typedef signed short int16_t;
+typedef signed int   int32_t;
+typedef unsigned char  uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int   uint32_t;
+typedef signed long long   int64_t;
+typedef unsigned long long uint64_t;
+
 typedef struct
 {
 	char *topic;
