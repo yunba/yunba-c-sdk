@@ -56,4 +56,6 @@ mac, Apple LLVM version 6.1.0／OS X 10.11.6
 
 该sdk 不支持标准的mqtt, mqtt v3.1.1
 
+在 windows 上使用请 checkout 到 `feature/windows_building` 这个分支
+
 本例子基于 Eclipse paho
