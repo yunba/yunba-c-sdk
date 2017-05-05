@@ -34,7 +34,7 @@
 
 REG_info reg_info;
 
-typedef int (*CALLBACK)(char *p);
+typedef int (*YUNBA_CALLBACK)(char *p);
 int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, PCALLBACK cb) { 
     int ret = -1;
 	int sockfd, h;
@@ -144,7 +144,7 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, P
     return ret;
 }
 
-int tcp_post_json(char *json_data, char *hostname, uint16_t port, char *path, CALLBACK cb) {
+int tcp_post_json(char *json_data, char *hostname, uint16_t port, char *path, YUNBA_CALLBACK cb) {
 	int ret = -1;
 	int sockfd, h;
 	socklen_t len;

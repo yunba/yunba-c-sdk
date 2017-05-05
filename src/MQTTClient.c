@@ -67,9 +67,7 @@
 #define DEFAULT_QOS 1
 #define DEFAULT_RETAINED 0
 
-#if defined(WIN32) || defined(WIN64)
-typedef int ssize_t;
-#endif
+
 
 char* client_timestamp_eye = "MQTTClientV3_Timestamp " BUILD_TIMESTAMP;
 char* client_version_eye = "MQTTClientV3_Version " CLIENT_VERSION;

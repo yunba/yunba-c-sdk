@@ -11,11 +11,15 @@
 #if defined(WIN32) || defined(WIN64)
   #define DLLImport __declspec(dllimport)
   #define DLLExport __declspec(dllexport)
+  #define bzero(b,len) (memset((b), '\0', (len)), (void) 0) 
 #else
   #define DLLImport extern
   #define DLLExport __attribute__ ((visibility ("default")))
 #endif
 
+#if defined(WIN32) || defined(WIN64)
+typedef int ssize_t;
+#endif
 
 typedef enum {
 	GET_ALIAS =1,

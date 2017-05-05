@@ -322,7 +322,7 @@ int extendedCmdArrive(void *context, uint16_t cmd, int status, int ret_string_le
 	char buf[1024];
 	memset(buf, 0, 1024);
 	memcpy(buf, ret_string, ret_string_len);
-	printf("%s:%02x,%02x,%02x, %s\n", __func__, cmd, status, ret_string_len, buf);
+	printf("%s:%02x,%02x,%02x, %s\n", "extendedCmdArrive", cmd, status, ret_string_len, buf);
 
 }
 
