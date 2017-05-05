@@ -18,12 +18,18 @@
     <ClCompile Include="..\..\src\samples\stdoutsub.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\cJSON.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\MQTTClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\MQTTClientPersistence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\cJSON.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
