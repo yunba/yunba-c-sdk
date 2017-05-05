@@ -2131,8 +2131,12 @@ int get_present_info(char *topicName, MQTTClient_message* m, Presence_msg *prese
 	if (endswith(topicName, "/p") != 0) {
 		cJSON *root = cJSON_Parse((char *)m->payload);
 		if (root != NULL) {
-			strcpy(presence_status->action, cJSON_GetObjectItem(root,"action")->valuestring);
-			strcpy(presence_status->alias, cJSON_GetObjectItem(root,"alias")->valuestring);
+			cJSON * pAction = cJSON_GetObjectItem(root,"action");
+			cJSON * pAlias = cJSON_GetObjectItem(root,"alias");
+			if (pAction != NULL && pAlias != NULL) {
+				strcpy(presence_status->action, pAction->valuestring);
+				strcpy(presence_status->alias, pAlias->valuestring);
+			}
 			cJSON_Delete(root);
 			return 0;
 		}
