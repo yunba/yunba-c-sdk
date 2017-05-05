@@ -48,6 +48,9 @@ enum {
 	PUBLISH2_TLV_MAX_NUM
 };
 
+typedef int (*PCALLBACK)(char *p);
+int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, PCALLBACK cb);
+
 typedef struct {
 	/* in MQTT v3.1,If the Client ID contains more than 23 characters, the server responds to
 	 * the CONNECT message with a CONNACK return code 2: Identifier Rejected.
@@ -76,3 +79,4 @@ DLLExport int MQTTClient_get_host_v2(char *appkey, char* url);
 
 
 #endif /* YUNBA_COMMON_H_ */
+

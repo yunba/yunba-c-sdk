@@ -35,8 +35,8 @@
 REG_info reg_info;
 
 typedef int (*CALLBACK)(char *p);
-int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, CALLBACK cb) {
-	int ret = -1;
+int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, PCALLBACK cb) { 
+    int ret = -1;
 	int sockfd, h;
 	socklen_t len;
 	fd_set   t_set1;
@@ -44,17 +44,28 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, C
 	char buf[4096];
 	memset(buf, 0, sizeof(buf));
 
+#if defined(WIN32) || defined(WIN64)
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	wVersionRequested = MAKEWORD(2, 2);
+	if (WSAStartup(wVersionRequested, &wsaData) != 0)
+	{
+		printf("Init Windows Socket Failed::%d\n", GetLastError());
+		return -1;
+	}
+#else
+
+#endif
+
+
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		return -1;
 
-    bzero(&servaddr, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(port);
     struct hostent *host_entry = gethostbyname(hostname);
-    if (host_entry == NULL) return -1;
-
     char* p = inet_ntoa(*((struct in_addr *)host_entry->h_addr));
-    if (p == NULL) return -1;
 	if (inet_pton(AF_INET, p, &servaddr.sin_addr) <= 0)
 		return -1;
 
@@ -77,18 +88,27 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, C
     sprintf(temp, "Host: %s:%d", hostname, port),
     strcat(buf, temp);
     strcat(buf, "\r\n");
-    strcat(buf, "Accept: application/json\r\n");
+    strcat(buf, "Accept: */*\r\n");
     strcat(buf, "Content-Type: application/json\r\n");
     strcat(buf, "Content-Length: ");
     sprintf(temp, "%d", strlen(json_data)),
     strcat(buf, temp);
-    strcat(buf, "\n\n");
+    strcat(buf, "\r\n\r\n");
     strcat(buf, json_data);
 
     //TODO:　可能没写完？
+#if defined(WIN32) || defined(WIN64)
+	ret = send(sockfd, buf, strlen(buf), 0);
+#else
     ret = write(sockfd, buf, strlen(buf));
+#endif
 	if (ret < 0) {
+#if defined(WIN32) || defined(WIN64)
+		closesocket(sockfd);
+		WSACleanup();
+#else
 		close(sockfd);
+#endif
 		return -1;
 	}
 
@@ -100,7 +120,11 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, C
 	h = select(sockfd + 1, &t_set1, NULL, NULL, &tv);
 	if (h > 0) {
 		memset(buf, 0, sizeof(buf));
+#if defined(WIN32) || defined(WIN64)
+		ssize_t  i = recv(sockfd, buf, sizeof(buf), 0);
+#else
 		ssize_t  i= read(sockfd, buf, sizeof(buf));
+#endif
 		//取body
 		char *temp = strstr(buf, "\r\n\r\n");
 		if (temp) {
@@ -111,7 +135,12 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, C
 	} else
 		ret = -1;
 
-    close(sockfd);
+#if defined(WIN32) || defined(WIN64)
+	closesocket(sockfd);
+	WSACleanup();
+#else
+	close(sockfd);
+#endif
     return ret;
 }
 
