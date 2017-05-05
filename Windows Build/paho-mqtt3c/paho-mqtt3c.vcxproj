@@ -100,6 +100,10 @@
     <ClCompile Include="..\..\src\Thread.c" />
     <ClCompile Include="..\..\src\Tree.c" />
     <ClCompile Include="..\..\src\utf-8.c" />
+    <ClCompile Include="..\..\src\yunba_common.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\yunba_common.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

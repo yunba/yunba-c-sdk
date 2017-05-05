@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\cJSON.c" />
     <ClCompile Include="..\..\src\Clients.c" />
     <ClCompile Include="..\..\src\Heap.c" />
     <ClCompile Include="..\..\src\LinkedList.c" />
@@ -101,6 +102,7 @@
     <ClCompile Include="..\..\src\Thread.c" />
     <ClCompile Include="..\..\src\Tree.c" />
     <ClCompile Include="..\..\src\utf-8.c" />
+    <ClCompile Include="..\..\src\yunba_common.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Clients.h" />
@@ -125,6 +127,7 @@
     <ClInclude Include="..\..\src\Thread.h" />
     <ClInclude Include="..\..\src\Tree.h" />
     <ClInclude Include="..\..\src\utf-8.h" />
+    <ClInclude Include="..\..\src\yunba_common.h" />
     <ClInclude Include="..\paho-mqtt3c\stdafx.h" />
     <ClInclude Include="..\paho-mqtt3c\targetver.h" />
   </ItemGroup>
