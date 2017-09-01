@@ -36,6 +36,11 @@ REG_info reg_info;
 
 typedef int (*YUNBA_CALLBACK)(char *p);
 int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, PCALLBACK cb) { 
+    if(NULL == json_data || NULL == hostname || NULL == path)
+    {
+        return -1;
+    }
+
     int ret = -1;
 	int sockfd, h;
 	socklen_t len;
