@@ -65,6 +65,7 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, P
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(port);
     struct hostent *host_entry = gethostbyname(hostname);
+    if(NULL == host_entry) return -1;
     char* p = inet_ntoa(*((struct in_addr *)host_entry->h_addr));
 	if (inet_pton(AF_INET, p, &servaddr.sin_addr) <= 0)
 		return -1;
