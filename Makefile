@@ -16,16 +16,13 @@
 #     Andy Piper - various fixes
 #     Ian Craggs - OSX build
 #     Rainer Poisel - support for multi-core builds and cross-compilation
+#     by - FreeBSD build
 #*******************************************************************************/
 
 # Note: on OS X you should install XCode and the associated command-line tools
+# Note: On FreeBSD, you need install bash, gmake and gsed to do the build
 
-SHELL = /bin/sh
 .PHONY: clean, mkdir, install, uninstall, html
-
-ifndef release.version
-  release.version = 1.0.3
-endif
 
 # determine current platform
 BUILD_TYPE ?= debug
@@ -39,6 +36,16 @@ else
 endif # OS
 ifeq ($(OSTYPE),linux)
 	OSTYPE = Linux
+endif
+
+ifeq ($(OSTYPE),FreeBSD)
+	SHELL = /usr/local/bin/bash
+else
+	SHELL = /bin/sh
+endif
+
+ifndef release.version
+  release.version = 1.0.3
 endif
 
 # assume this is normally run in the main Paho directory
@@ -99,7 +106,11 @@ MQTTLIB_CS = paho-mqtt3cs
 MQTTLIB_A = paho-mqtt3a
 MQTTLIB_AS = paho-mqtt3as
 
-CC ?= gcc
+ifeq ($(OSTYPE),FreeBSD)
+	CC ?= cc
+else
+	CC ?= gcc
+endif
 
 ifndef INSTALL
 INSTALL = install
@@ -127,7 +138,23 @@ LDFLAGS_CS = $(LDFLAGS) -shared $(START_GROUP) -lpthread -lm $(EXTRA_LIB) -lssl 
 LDFLAGS_A = $(LDFLAGS) -shared -Wl,-init,$(MQTTASYNC_INIT) -lpthread -lm 
 LDFLAGS_AS = $(LDFLAGS) -shared $(START_GROUP) -lpthread -lm $(EXTRA_LIB) -lssl -lcrypto $(END_GROUP) -Wl,-init,$(MQTTASYNC_INIT)
 
-ifeq ($(OSTYPE),Linux)
+ifeq ($(OSTYPE),FreeBSD)
+
+SED_COMMAND = gsed -i "s/\#\#MQTTCLIENT_VERSION_TAG\#\#/${release.version}/g; s/\#\#MQTTCLIENT_BUILD_TAG\#\#/${build.level}/g"
+
+MQTTCLIENT_INIT = MQTTClient_init
+MQTTASYNC_INIT = MQTTAsync_init
+START_GROUP = -Wl,--start-group
+END_GROUP = -Wl,--end-group
+
+#EXTRA_LIB = -ldl
+
+LDFLAGS_C += -Wl,-soname,lib$(MQTTLIB_C).so.${MAJOR_VERSION}
+LDFLAGS_CS += -Wl,-soname,lib$(MQTTLIB_CS).so.${MAJOR_VERSION} -Wl,-no-whole-archive
+LDFLAGS_A += -Wl,-soname,lib${MQTTLIB_A}.so.${MAJOR_VERSION}
+LDFLAGS_AS += -Wl,-soname,lib${MQTTLIB_AS}.so.${MAJOR_VERSION} -Wl,-no-whole-archive
+
+else ifeq ($(OSTYPE),Linux)
 
 SED_COMMAND = sed -i "s/\#\#MQTTCLIENT_VERSION_TAG\#\#/${release.version}/g; s/\#\#MQTTCLIENT_BUILD_TAG\#\#/${build.level}/g" 
 
@@ -217,7 +244,7 @@ ${MQTTLIB_AS_TARGET}: ${SOURCE_FILES_AS} ${HEADERS_A}
 	-ln -s lib$(MQTTLIB_AS).so.${MAJOR_VERSION} ${blddir}/lib$(MQTTLIB_AS).so
 
 ${MQTTVERSION_TARGET}: $(srcdir)/MQTTVersion.c $(srcdir)/MQTTAsync.h ${MQTTLIB_A_TARGET} $(MQTTLIB_CS_TARGET)
-	${CC} ${FLAGS_EXE} -o $@ -l${MQTTLIB_A} $(srcdir)/MQTTVersion.c -ldl
+	${CC} ${FLAGS_EXE} -o $@ -l${MQTTLIB_A} $(srcdir)/MQTTVersion.c $(EXTRA_LIB)
 
 strip_options:
 	$(eval INSTALL_OPTS := -s)
@@ -231,6 +258,10 @@ install: build
 	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_AS_TARGET} $(DESTDIR)${libdir}
 	$(INSTALL_PROGRAM) ${INSTALL_OPTS} ${MQTTVERSION_TARGET} $(DESTDIR)${bindir}
 	/sbin/ldconfig $(DESTDIR)${libdir}
+	ln -s lib$(MQTTLIB_C).so.${VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so.${MAJOR_VERSION}
+	ln -s lib$(MQTTLIB_CS).so.${VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so.${MAJOR_VERSION}
+	ln -s lib$(MQTTLIB_A).so.${VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so.${MAJOR_VERSION}
+	ln -s lib$(MQTTLIB_AS).so.${VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so.${MAJOR_VERSION}
 	ln -s lib$(MQTTLIB_C).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so
 	ln -s lib$(MQTTLIB_CS).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so
 	ln -s lib$(MQTTLIB_A).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
@@ -240,19 +271,23 @@ install: build
 	$(INSTALL_DATA) ${srcdir}/MQTTClientPersistence.h $(DESTDIR)${includedir}
 
 uninstall:
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so.${VERSION}
-	rm $(DESTDIR)${bindir}/MQTTVersion
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so.${VERSION}
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so.${VERSION}
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so.${VERSION}
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so.${VERSION}
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so.${MAJOR_VERSION}
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so.${MAJOR_VERSION}
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so.${MAJOR_VERSION}
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so.${MAJOR_VERSION}
+	rm -f $(DESTDIR)${bindir}/MQTTVersion
 	/sbin/ldconfig $(DESTDIR)${libdir}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so
-	rm $(DESTDIR)${includedir}/MQTTAsync.h
-	rm $(DESTDIR)${includedir}/MQTTClient.h
-	rm $(DESTDIR)${includedir}/MQTTClientPersistence.h
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
+	rm -f $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so
+	rm -f $(DESTDIR)${includedir}/MQTTAsync.h
+	rm -f $(DESTDIR)${includedir}/MQTTClient.h
+	rm -f $(DESTDIR)${includedir}/MQTTClientPersistence.h
 
 html:
 	-mkdir -p ${blddir}/doc
