@@ -138,6 +138,7 @@ LDFLAGS_CS = $(LDFLAGS) -shared $(START_GROUP) -lpthread -lm $(EXTRA_LIB) -lssl 
 LDFLAGS_A = $(LDFLAGS) -shared -Wl,-init,$(MQTTASYNC_INIT) -lpthread -lm 
 LDFLAGS_AS = $(LDFLAGS) -shared $(START_GROUP) -lpthread -lm $(EXTRA_LIB) -lssl -lcrypto $(END_GROUP) -Wl,-init,$(MQTTASYNC_INIT)
 
+# This entry is copied from Linux below, just comment out the variable EXTRA_LIB
 ifeq ($(OSTYPE),FreeBSD)
 
 SED_COMMAND = gsed -i "s/\#\#MQTTCLIENT_VERSION_TAG\#\#/${release.version}/g; s/\#\#MQTTCLIENT_BUILD_TAG\#\#/${build.level}/g"
