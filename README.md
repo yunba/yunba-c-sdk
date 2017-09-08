@@ -3,6 +3,7 @@
 - GNU Make,gcc
 - OpenSSL
 - 标准C库
+- bash, gmake, gsed(For FreeBSD)
 
 ## 编译和使用方法
 
@@ -10,6 +11,10 @@
 ```
 make
 sudo make install
+
+(For FreeBSD)
+gmake
+gmake install(run as root user)
 ```
 
 - 成功后会在 build/output/samples/ 下生成 stdouta_demo 和 stdinpub_present 两个可执行文件。*注意在使用 make 的时候如果你的电脑有多于一个的 C 标准库，就需要在 make 的时候加上`-stdlib=libstdc++`来选择标准库，否则会产生错误。*
@@ -28,6 +33,10 @@ sudo make install
 ```
 sudo make uninstall
 make clean
+
+(For FreeBSD)
+gmake uninstall(run as root user)
+gmake clean
 ```
 
 ## 第三方库
@@ -52,6 +61,7 @@ ubuntu 12.04, gcc version 4.6.4.
 
 mac, Apple LLVM version 6.1.0／OS X 10.11.6
 
+FreeBSD 10.3-RELEASE clang version 3.4.1
 ## 注意
 
 该sdk 不支持标准的mqtt, mqtt v3.1.1
