@@ -33,6 +33,10 @@
 #include "yunba_common.h"
 
 REG_info reg_info;
+static char reg_url[20] = "reg.yunba.io";
+static char reg_url_v2[20] = "reg-t.yunba.io";
+static int reg_port = 8383;
+static int reg_port_v2 = 9944;
 
 typedef int (*YUNBA_CALLBACK)(char *p);
 int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, PCALLBACK cb) { 
@@ -70,8 +74,14 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, P
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(port);
     struct hostent *host_entry = gethostbyname(hostname);
+
     if(NULL == host_entry) return -1;
+
     char* p = inet_ntoa(*((struct in_addr *)host_entry->h_addr));
+    if(p == NULL)
+    {
+        return -1;
+    }
 	if (inet_pton(AF_INET, p, &servaddr.sin_addr) <= 0)
 		return -1;
 
@@ -151,6 +161,10 @@ int http_post_json(char *json_data, char *hostname, uint16_t port, char *path, P
 }
 
 int tcp_post_json(char *json_data, char *hostname, uint16_t port, char *path, YUNBA_CALLBACK cb) {
+    if(NULL == json_data || NULL == hostname || NULL == path)
+    {
+        return -1;
+    }
 	int ret = -1;
 	int sockfd, h;
 	socklen_t len;
@@ -170,6 +184,7 @@ int tcp_post_json(char *json_data, char *hostname, uint16_t port, char *path, YU
 
     char* p = inet_ntoa(*((struct in_addr *)host_entry->h_addr));
     if (p == NULL) return -1;
+
 	if (inet_pton(AF_INET, p, &servaddr.sin_addr) <= 0)
 		return -1;
 
@@ -252,7 +267,7 @@ int MQTTClient_setup_with_appkey(char* appkey, REG_info *info)
 	char json_data[1024];
 	sprintf(json_data, "{\"a\": \"%s\", \"p\":4}", appkey);
 
-	int ret = http_post_json(json_data, "reg.yunba.io", 8383, "/device/reg/", reg_cb);
+	int ret = http_post_json(json_data, reg_url, reg_port, "/device/reg/", reg_cb);
 	if (ret < 0)
 		return -1;
 
@@ -269,7 +284,7 @@ int MQTTClient_setup_with_appkey_v2(char* appkey, REG_info *info)
 	char json_data[1024];
 	sprintf(json_data, "{\"a\": \"%s\", \"p\":4}", appkey);
 
-	int ret = tcp_post_json(json_data, "reg-t.yunba.io", 9944, "/device/reg/", reg_cb);
+	int ret = tcp_post_json(json_data, reg_url_v2, reg_port_v2, "/device/reg/", reg_cb);
 	if (ret < 0)
 		return -1;
 
@@ -293,7 +308,7 @@ int MQTTClient_setup_with_appkey_and_deviceid(char* appkey, char *deviceid, REG_
 	else
 		sprintf(json_data, "{\"a\": \"%s\", \"p\":4, \"d\": \"%s\"}", appkey, deviceid);
 
-	int ret = http_post_json(json_data, "reg.yunba.io", 8383, "/device/reg/", reg_cb);
+	int ret = http_post_json(json_data, reg_url, reg_port, "/device/reg/", reg_cb);
 	if (ret < 0)
 		return -1;
 
@@ -316,7 +331,7 @@ int MQTTClient_setup_with_appkey_and_deviceid_v2(char* appkey, char *deviceid, R
 	else
 		sprintf(json_data, "{\"a\": \"%s\", \"p\":4, \"d\": \"%s\"}", appkey, deviceid);
 
-	int ret = tcp_post_json(json_data, "reg-t.yunba.io", 9944, "/device/reg/", reg_cb);
+	int ret = tcp_post_json(json_data, reg_url_v2, reg_port_v2, "/device/reg/", reg_cb);
 	if (ret < 0)
 		return -1;
 
@@ -347,6 +362,18 @@ static size_t get_broker_cb(const char *json_data)
 		cJSON_Delete(root);
 	}
 	return ret;
+}
+
+void set_reg_url(const char url[20], int port)
+{
+    strncpy(reg_url, url, 20);
+    reg_port = port;
+}
+
+void set_reg_url_v2(const char url[20], int port)
+{
+    strncpy(reg_url_v2, url, 20);
+    reg_port_v2 = port;
 }
 
 int MQTTClient_get_host(char *appkey, char* url)

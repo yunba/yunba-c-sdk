@@ -230,7 +230,7 @@ install: build
 	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_A_TARGET} $(DESTDIR)${libdir}
 	$(INSTALL_DATA) ${INSTALL_OPTS} ${MQTTLIB_AS_TARGET} $(DESTDIR)${libdir}
 	$(INSTALL_PROGRAM) ${INSTALL_OPTS} ${MQTTVERSION_TARGET} $(DESTDIR)${bindir}
-	/sbin/ldconfig $(DESTDIR)${libdir}
+	- /sbin/ldconfig $(DESTDIR)${libdir}
 	ln -s lib$(MQTTLIB_C).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so
 	ln -s lib$(MQTTLIB_CS).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so
 	ln -s lib$(MQTTLIB_A).so.${MAJOR_VERSION} $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
@@ -240,19 +240,19 @@ install: build
 	$(INSTALL_DATA) ${srcdir}/MQTTClientPersistence.h $(DESTDIR)${includedir}
 
 uninstall:
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so.${VERSION}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so.${VERSION}
-	rm $(DESTDIR)${bindir}/MQTTVersion
-	/sbin/ldconfig $(DESTDIR)${libdir}
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
-	rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so
-	rm $(DESTDIR)${includedir}/MQTTAsync.h
-	rm $(DESTDIR)${includedir}/MQTTClient.h
-	rm $(DESTDIR)${includedir}/MQTTClientPersistence.h
+	-rm $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so.${VERSION}
+	-rm $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so.${VERSION}
+	-rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so.${VERSION}
+	-rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so.${VERSION}
+	-rm $(DESTDIR)${bindir}/MQTTVersion
+	-/sbin/ldconfig $(DESTDIR)${libdir}
+	-rm $(DESTDIR)${libdir}/lib$(MQTTLIB_C).so
+	-rm $(DESTDIR)${libdir}/lib$(MQTTLIB_CS).so
+	-rm $(DESTDIR)${libdir}/lib$(MQTTLIB_A).so
+	-rm $(DESTDIR)${libdir}/lib$(MQTTLIB_AS).so
+	-rm $(DESTDIR)${includedir}/MQTTAsync.h
+	-rm $(DESTDIR)${includedir}/MQTTClient.h
+	-rm $(DESTDIR)${includedir}/MQTTClientPersistence.h
 
 html:
 	-mkdir -p ${blddir}/doc
