@@ -52,7 +52,7 @@ int MQTTPacket_send_connect(Clients* client, int MQTTVersion)
 	packet.header.bits.type = CONNECT;
 	packet.header.bits.qos = 1;
 
-	len = ((MQTTVersion == 3) ? 12 : 10) + strlen(client->clientID)+2;
+	len = ((MQTTVersion == 3 || MQTTVersion == 0x13)  ? 12 : 10) + strlen(client->clientID)+2;
 	if (client->will)
 		len += strlen(client->will->topic)+2 + strlen(client->will->msg)+2;
 	if (client->username)
@@ -61,8 +61,14 @@ int MQTTPacket_send_connect(Clients* client, int MQTTVersion)
 		len += strlen(client->password)+2;
 
 	ptr = buf = malloc(len);
-	writeUTF(&ptr, "MQIsdp");
-	writeChar(&ptr, (char)0x13);
+    if(MQTTVersion == 3 || MQTTVersion == 0x13)
+    {
+        writeUTF(&ptr, "MQIsdp");
+    }else
+    {
+        writeUTF(&ptr, "MQTT");
+    }
+	writeChar(&ptr, (char)MQTTVersion);
 
 	packet.flags.all = 0;
 	packet.flags.bits.cleanstart = client->cleansession;

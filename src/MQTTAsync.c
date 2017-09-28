@@ -1007,7 +1007,7 @@ void MQTTAsync_processCommand()
 					if (command->command.details.conn.MQTTVersion == 3)
 					{
 						command->command.details.conn.currentURI++;
-						command->command.details.conn.MQTTVersion = 4;
+						command->command.details.conn.MQTTVersion = 3;
 					} 
 				}
 				else
@@ -1028,9 +1028,8 @@ void MQTTAsync_processCommand()
 			if (command->client->c->MQTTVersion == MQTTVERSION_DEFAULT)
 			{
 				if (command->command.details.conn.MQTTVersion == 0)
-					command->command.details.conn.MQTTVersion = MQTTVERSION_3_1_1;
-				else if (command->command.details.conn.MQTTVersion == MQTTVERSION_3_1_1)
-					command->command.details.conn.MQTTVersion = MQTTVERSION_3_1;
+                    //use yunba mqtt by default
+					command->command.details.conn.MQTTVersion = 0x13;
 			}
 			else
 				command->command.details.conn.MQTTVersion = command->client->c->MQTTVersion;
