@@ -43,6 +43,7 @@
 #include <memory.h>
 
 
+#include "log.h"
 #if defined(WIN32)
 #include <Windows.h>
 #define sleep Sleep
@@ -221,9 +222,11 @@ int main(int argc, char** argv)
 	conn_opts.keepAliveInterval = 300;
 	conn_opts.reliable = 0;
 	conn_opts.cleansession = 1;
+    conn_opts.MQTTVersion = 0x3;
 	conn_opts.username = my_reg_info.username;
 	conn_opts.password = my_reg_info.password;
 	
+    Log_setTraceLevel(TRACE_MINIMUM);
 	myconnect(&client, &conn_opts);
 
 	buffer = malloc(opts.maxdatalen);

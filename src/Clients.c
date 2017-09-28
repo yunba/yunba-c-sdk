@@ -26,7 +26,9 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "Log.h"
 
+extern ClientStates* bstate;
 /**
  * List callback function for comparing clients by clientid
  * @param a first integer value
@@ -52,4 +54,28 @@ int clientSocketCompare(void* a, void* b)
 	Clients* client = (Clients*)a;
 	/*printf("comparing %d with %d\n", (char*)a, (char*)b); */
 	return client->net.socket == *(int*)b;
+}
+
+int get_client_mqtt_version_from_network_handler(networkHandles* handler)
+{
+    if(NULL == handler || NULL == bstate )
+    {
+        return 0x13;
+    }
+    int sockId = handler->socket;
+	Clients* client = (Clients*)(ListFindItem(bstate->clients, &sockId, clientSocketCompare)->content);
+    if(NULL == client)
+    {
+        //use yunba mqtt by default
+        return 0x13;
+    }else{
+
+        Log(TRACE_MINIMUM, -1, "mqttversion is :%d", client->MQTTVersion);
+        if(client->MQTTVersion == 0)
+        {
+            return 0x13;
+        }else{
+            return client->MQTTVersion;
+        }
+    }
 }

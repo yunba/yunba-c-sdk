@@ -17,7 +17,7 @@
 
 #if !defined(LOG_H)
 #define LOG_H
-
+#include "yunba.h"
 /*BE
 map LOG_LEVELS
 {
@@ -79,6 +79,6 @@ void Log_stackTrace(int, int, int, int, const char*, int, int*);
 
 typedef void Log_traceCallback(enum LOG_LEVELS level, char* message);
 void Log_setTraceCallback(Log_traceCallback* callback);
-void Log_setTraceLevel(enum LOG_LEVELS level);
+DLLExport void Log_setTraceLevel(enum LOG_LEVELS level);
 
 #endif

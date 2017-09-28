@@ -194,6 +194,7 @@ typedef struct
 int clientIDCompare(void* a, void* b);
 int clientSocketCompare(void* a, void* b);
 
+int get_client_mqtt_version_from_network_handler(networkHandles* handler);
 /**
  * Configuration data related to all clients
  */

@@ -40,6 +40,7 @@
 #define min(A,B) ( (A) < (B) ? (A):(B))
 #endif
 
+extern ClientStates* bstate;
 /**
  * List of the predefined MQTT v3 packet names.
  */
@@ -83,7 +84,7 @@ pf new_packets[] =
 	MQTTPacket_header_only, /**< PINGREQ */
 	MQTTPacket_header_only, /**< PINGRESP */
 	MQTTPacket_header_only,  /**< DISCONNECT */
-	MQTTPacket_get /* for extended cmd */
+	MQTTPacket_get_ext_cmd_package /* for extended cmd */
 };
 
 
@@ -140,7 +141,7 @@ void* MQTTPacket_Factory(networkHandles* net, int* error)
 			Log(TRACE_MIN, 2, NULL, ptype);
 		else
 		{
-			if ((pack = (*new_packets[ptype])(header.byte, data, remaining_length)) == NULL)
+			if ((pack = (*new_packets[ptype])(header.byte, data, remaining_length, net)) == NULL)
 				*error = BAD_MQTT_PACKET;
 #if !defined(NO_PERSISTENCE)
 			else if (header.bits.type == PUBLISH && header.bits.qos == 2)
@@ -177,6 +178,7 @@ int MQTTPacket_send(networkHandles* net, Header header, char* buffer, size_t buf
 {
 	int rc, buf0len;
 	char *buf;
+    int mqtt_version = get_client_mqtt_version_from_network_handler(net);
 
 	FUNC_ENTRY;
 	buf = malloc(10);
@@ -186,7 +188,13 @@ int MQTTPacket_send(networkHandles* net, Header header, char* buffer, size_t buf
 	if (header.bits.type == PUBREL)
 	{
 		char* ptraux = buffer;
-		uint64_t msgId = readInt64(&ptraux);
+		uint64_t msgId = 0;
+        if(mqtt_version == 0x13)
+        {
+            msgId = readInt64(&ptraux);
+        }else{
+            msgId = readInt(&ptraux);
+        }
 		rc = MQTTPersistence_put(net->socket, buf, buf0len, 1, &buffer, &buflen,
 			header.bits.type, msgId, 0);
 	}
@@ -223,6 +231,7 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 {
 	int i, rc, buf0len, total = 0;
 	char *buf;
+    int mqtt_version = get_client_mqtt_version_from_network_handler(net);
 
 	FUNC_ENTRY;
 	buf = malloc(10);
@@ -237,7 +246,14 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 	if (header.bits.type == PUBLISH && header.bits.qos != 0)
 	{   /* persist PUBLISH QoS1 and Qo2 */
 		char *ptraux = buffers[2];
-		uint64_t msgId = readInt64(&ptraux);
+        uint64_t msgId = 0;
+        if(mqtt_version == 0x13)
+        {
+             msgId = readInt64(&ptraux);
+        }else{
+            msgId = readInt(&ptraux);
+
+        }
 		rc = MQTTPersistence_put(net->socket, buf, buf0len, count, buffers, buflens,
 			header.bits.type, msgId, 0);
 	}
@@ -478,7 +494,7 @@ void writeUTF(char** pptr, const char* string)
  * @param datalen the length of the rest of the packet
  * @return pointer to the packet structure
  */
-void* MQTTPacket_header_only(unsigned char aHeader, char* data, size_t datalen)
+void* MQTTPacket_header_only(unsigned char aHeader, char* data, size_t datalen, networkHandles* handler)
 {
 	static unsigned char header = 0;
 	header = aHeader;
@@ -505,21 +521,17 @@ int MQTTPacket_send_disconnect(networkHandles *net, const char* clientID)
 	return rc;
 }
 
-void* MQTTPacket_get(unsigned char aHeader, char* data, int datalen)
+void* MQTTPacket_get_ext_cmd_package(
+        unsigned char aHeader, char* data,
+        int datalen, networkHandles* handler)
 {
 	Ext_ack* pack = malloc(sizeof(Ext_ack));
 	char* curdata = data;
-//	char* enddata = &data[datalen];
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
 
-//	if (pack->header.bits.qos > 0)  /* Msgid only exists for QoS 1 or 2 */ {
-		pack->msgId = readInt64(&curdata);
-//	}
-//	else
-//		pack->msgId = 0;
-
+    pack->msgId = readInt64(&curdata);
  //   printf("received msgid %PRIu64\n", pack->msgId);
 	pack->ack_payload.ext_cmd = (*curdata);
 	curdata++;
@@ -548,11 +560,12 @@ void MQTTPacket_freeGet(Getack* pack)
  * @param datalen the length of the rest of the packet
  * @return pointer to the packet structure
  */
-void* MQTTPacket_publish(unsigned char aHeader, char* data, size_t datalen)
+void* MQTTPacket_publish(unsigned char aHeader, char* data, size_t datalen, networkHandles* handler)
 {
 	Publish* pack = malloc(sizeof(Publish));
 	char* curdata = data;
 	char* enddata = &data[datalen];
+    int mqtt_version = get_client_mqtt_version_from_network_handler(handler);
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
@@ -563,7 +576,13 @@ void* MQTTPacket_publish(unsigned char aHeader, char* data, size_t datalen)
 		goto exit;
 	}
 	if (pack->header.bits.qos > 0)  /* Msgid only exists for QoS 1 or 2 */
-		pack->msgId = readInt64(&curdata);
+        if(mqtt_version == 0x13)
+        {
+            pack->msgId = readInt64(&curdata);
+        }
+        else{
+            pack->msgId = readInt(&curdata);
+        }
 	else
 		pack->msgId = 0;
     //printf("received msgid %"PRIu64\n", pack->msgId);
@@ -601,8 +620,11 @@ int MQTTPacket_send_ack(int type, uint64_t msgid, int dup, networkHandles *net)
 {
 	Header header;
 	int rc;
+    int len = 0;
 	char *buf = malloc(8);
 	char *ptr = buf;
+    int mqtt_version = get_client_mqtt_version_from_network_handler(net);
+
 
 	FUNC_ENTRY;
 	header.byte = 0;
@@ -610,8 +632,17 @@ int MQTTPacket_send_ack(int type, uint64_t msgid, int dup, networkHandles *net)
 	header.bits.dup = dup;
 	if (type == PUBREL)
 	    header.bits.qos = 1;
-	writeInt64(&ptr, msgid);
-	if ((rc = MQTTPacket_send(net, header, buf, 8, 1)) != TCPSOCKET_INTERRUPTED)
+
+    //check this client's version
+    if(mqtt_version == 0x13)
+    {
+        writeInt64(&ptr, msgid);
+        len = 8;
+    }else{
+        writeInt(&ptr, (int)msgid);
+        len = 2;
+    }
+	if ((rc = MQTTPacket_send(net, header, buf, len, 1)) != TCPSOCKET_INTERRUPTED)
 		free(buf);
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -716,21 +747,28 @@ int MQTTPacket_send_pubcomp(uint64_t msgid, networkHandles* net, const char* cli
  * @param datalen the length of the rest of the packet
  * @return pointer to the packet structure
  */
-void* MQTTPacket_ack(unsigned char aHeader, char* data, size_t datalen)
+void* MQTTPacket_ack(unsigned char aHeader, char* data, size_t datalen, networkHandles* handler)
 {
 	Ack* pack = malloc(sizeof(Ack));
 	char* curdata = data;
+    int mqtt_version = get_client_mqtt_version_from_network_handler(handler);
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
-	pack->msgId = readInt64(&curdata);
+
+    if(mqtt_version == 0x13)
+    {
+        pack->msgId = readInt64(&curdata);
+    }else{
+        pack->msgId = readInt(&curdata);
+    }
 	FUNC_EXIT;
 	return pack;
 }
 
 
 
-int MQTTPacket_send_get(Get* pack, int dup, int qos, int retained, networkHandles* net, const char* clientID)
+int MQTTPacket_send_ext_cmd(Get* pack, int dup, int qos, int retained, networkHandles* net, const char* clientID)
 {
 	Header header;
 	int rc = -1;
@@ -810,13 +848,22 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 	header.bits.retain = retained;
 	if (qos > 0)
 	{
+        //need to find out the client of this client id
 		char *buf = malloc(8);
 		char *ptr = buf;
 		char* bufs[4] = {topiclen, pack->topic, buf, pack->payload};
 		size_t lens[4] = {2, strlen(pack->topic), 8, pack->payloadlen};
 		int frees[4] = {1, 0, 1, 0};
+        int mqtt_version = get_client_mqtt_version_from_network_handler(net);
 
-		writeInt64(&ptr, pack->msgId);
+        
+        if(mqtt_version == 0x13)
+        {
+            writeInt64(&ptr, pack->msgId);
+        }else{
+            writeInt(&ptr, pack->msgId);
+            lens[3] -= 6;
+        }
 		ptr = topiclen;
 		writeInt(&ptr, lens[1]);
 		rc = MQTTPacket_sends(net, header, 4, bufs, lens, frees);

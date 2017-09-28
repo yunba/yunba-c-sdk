@@ -34,7 +34,6 @@
 
 #include "Heap.h"
 
-
 /**
  * Send an MQTT CONNECT packet down a socket.
  * @param client a structure from which to get all the required values
@@ -114,7 +113,7 @@ exit:
  * @param datalen the length of the rest of the packet
  * @return pointer to the packet structure
  */
-void* MQTTPacket_connack(unsigned char aHeader, char* data, size_t datalen)
+void* MQTTPacket_connack(unsigned char aHeader, char* data, size_t datalen, networkHandles* handler)
 {
 	Connack* pack = malloc(sizeof(Connack));
 	char* curdata = data;
@@ -167,6 +166,7 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, uint64_t msgid, int dup,
 	int rc = -1;
 	ListElement *elem = NULL, *qosElem = NULL;
 	int datalen;
+    int mqtt_version = get_client_mqtt_version_from_network_handler(net);
 
 	FUNC_ENTRY;
 	header.bits.type = SUBSCRIBE;
@@ -174,12 +174,22 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, uint64_t msgid, int dup,
 	header.bits.qos = 1;
 	header.bits.retain = 0;
 
+    //8 -> 64 bit msg id. if the msgid is 2 Byte, datalen will be decresed
 	datalen = 8 + topics->count * 3; // utf length + char qos == 3
 	while (ListNextElement(topics, &elem))
 		datalen += strlen((char*)(elem->content));
+
 	ptr = data = malloc(datalen);
 
-	writeInt64(&ptr, msgid);
+    if(mqtt_version == 0x13)
+    {
+        writeInt64(&ptr, msgid);
+    }else{
+        msgid = (int)msgid;
+        writeInt(&ptr, msgid);
+        //make sure the datalen is adjusted
+        datalen -= 6;
+    }
 	elem = NULL;
 	while (ListNextElement(topics, &elem))
 	{
@@ -203,14 +213,20 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, uint64_t msgid, int dup,
  * @param datalen the length of the rest of the packet
  * @return pointer to the packet structure
  */
-void* MQTTPacket_suback(unsigned char aHeader, char* data, size_t datalen)
+void* MQTTPacket_suback(unsigned char aHeader, char* data, size_t datalen, networkHandles* handler)
 {
 	Suback* pack = malloc(sizeof(Suback));
 	char* curdata = data;
+    int mqtt_version = get_client_mqtt_version_from_network_handler(handler);
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
-	pack->msgId = readInt64(&curdata);
+    if(mqtt_version == 0x13)
+    {
+        pack->msgId = readInt64(&curdata);
+    }else{
+        pack->msgId = readInt(&curdata);
+    }
 	pack->qoss = ListInitialize();
 	while ((size_t)(curdata - data) < datalen)
 	{
@@ -240,6 +256,7 @@ int MQTTPacket_send_unsubscribe(List* topics, uint64_t msgid, int dup, networkHa
 	int rc = -1;
 	ListElement *elem = NULL;
 	int datalen;
+    int mqtt_version = get_client_mqtt_version_from_network_handler(net);
 
 	FUNC_ENTRY;
 	header.bits.type = UNSUBSCRIBE;
@@ -252,7 +269,13 @@ int MQTTPacket_send_unsubscribe(List* topics, uint64_t msgid, int dup, networkHa
 		datalen += strlen((char*)(elem->content));
 	ptr = data = malloc(datalen);
 
-	writeInt64(&ptr, msgid);
+    if(0x13 == mqtt_version)
+    {
+        writeInt64(&ptr, msgid);
+    }else{
+        writeInt(&ptr, msgid);
+        datalen -= 6;
+    }
 	elem = NULL;
 	while (ListNextElement(topics, &elem))
 		writeUTF(&ptr, (char*)(elem->content));

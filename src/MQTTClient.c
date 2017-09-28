@@ -1027,9 +1027,9 @@ int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options,
 	m->c->username = options->username;
 	m->c->password = options->password;
 	m->c->retryInterval = options->retryInterval;
+    m->c->MQTTVersion = options->MQTTVersion;
 
-	if ((rc = MQTTClient_connectURIVersion(handle, options, serverURI, 3, start, millisecsTimeout)) != MQTTCLIENT_SUCCESS)
-		rc = MQTTClient_connectURIVersion(handle, options, serverURI, 4, start, millisecsTimeout);
+	if ((rc = MQTTClient_connectURIVersion(handle, options, serverURI, options->MQTTVersion, start, millisecsTimeout)) != MQTTCLIENT_SUCCESS)
 
 	FUNC_EXIT_RC(rc);
 	return rc;

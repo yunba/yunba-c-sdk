@@ -235,7 +235,7 @@ int MQTTProtocol_startGet(Clients* getclient, Get* get, int qos, int retained, M
 	rc = MQTTProtocol_startPublishCommon(pubclient, &p, qos, retained);
 #else
 	get->msgId = MQTTProtocol_assignMsgId(getclient);
-	rc = MQTTPacket_send_get(get, 0, qos, retained, &getclient->net, getclient->clientID);
+	rc = MQTTPacket_send_ext_cmd(get, 0, qos, retained, &getclient->net, getclient->clientID);
 #endif
 	FUNC_EXIT_RC(rc);
 	return rc;
