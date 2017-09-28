@@ -194,6 +194,7 @@ int MQTTPacket_send(networkHandles* net, Header header, char* buffer, size_t buf
             msgId = readInt64(&ptraux);
         }else{
             msgId = readInt(&ptraux);
+            buf0len -= 6;
         }
 		rc = MQTTPersistence_put(net->socket, buf, buf0len, 1, &buffer, &buflen,
 			header.bits.type, msgId, 0);
@@ -862,7 +863,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
             writeInt64(&ptr, pack->msgId);
         }else{
             writeInt(&ptr, pack->msgId);
-            lens[3] -= 6;
+            lens[2] -= 6;
         }
 		ptr = topiclen;
 		writeInt(&ptr, lens[1]);
