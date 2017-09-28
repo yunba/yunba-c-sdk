@@ -104,8 +104,6 @@ uint64_t generate_uuid() {
 }
 
 
-
-
 /**
  * Assign a new message id for a client.  Make sure it isn't already being used and does
  * not exceed the maximum.
@@ -115,31 +113,35 @@ uint64_t generate_uuid() {
 uint64_t MQTTProtocol_assignMsgId(Clients* client)
 {
 	uint64_t msgid;
+    int mqtt_version = get_client_mqtt_version_from_network_handler(&client->net);
 	FUNC_ENTRY;
-	msgid = generate_uuid();
-	client->msgID = msgid;
-	FUNC_EXIT_RC(msgid);
-	return msgid;
-#if 0
-	int start_msgid = client->msgID;
-	uint64_t msgid = start_msgid;
+    if(mqtt_version == MQTTVERSION_YUNBA_3_1)
+    {
+        msgid = generate_uuid();
+        client->msgID = msgid;
+    }else
+    {
+        int start_msgid = client->msgID;
+        msgid = start_msgid;
 
-	FUNC_ENTRY;
-	msgid = (msgid == MAX_MSG_ID) ? 1 : msgid + 1;
-	while (ListFindItem(client->outboundMsgs, &msgid, messageIDCompare) != NULL)
-	{
-		msgid = (msgid == MAX_MSG_ID) ? 1 : msgid + 1;
-		if (msgid == start_msgid) 
-		{ /* we've tried them all - none free */
-			msgid = 0;
-			break;
-		}
-	}
-	if (msgid != 0)
-		client->msgID = msgid;
+        FUNC_ENTRY;
+        msgid = (msgid == MAX_MSG_ID) ? 1 : msgid + 1;
+        while (ListFindItem(client->outboundMsgs, &msgid, messageIDCompare) != NULL)
+        {
+            msgid = (msgid == MAX_MSG_ID) ? 1 : msgid + 1;
+            if (msgid == start_msgid) 
+            { /* we've tried them all - none free */
+                msgid = 0;
+                break;
+            }
+        }
+        if (msgid != 0)
+            client->msgID = msgid;
+
+    }
+
 	FUNC_EXIT_RC(msgid);
 	return msgid;
-#endif
 }
 
 

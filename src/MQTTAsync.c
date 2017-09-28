@@ -1029,7 +1029,7 @@ void MQTTAsync_processCommand()
 			{
 				if (command->command.details.conn.MQTTVersion == 0)
                     //use yunba mqtt by default
-					command->command.details.conn.MQTTVersion = 0x13;
+					command->command.details.conn.MQTTVersion = MQTTVERSION_YUNBA_3_1;
 			}
 			else
 				command->command.details.conn.MQTTVersion = command->client->c->MQTTVersion;

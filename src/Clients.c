@@ -60,20 +60,20 @@ int get_client_mqtt_version_from_network_handler(networkHandles* handler)
 {
     if(NULL == handler || NULL == bstate )
     {
-        return 0x13;
+        return MQTTVERSION_YUNBA_3_1;
     }
     int sockId = handler->socket;
 	Clients* client = (Clients*)(ListFindItem(bstate->clients, &sockId, clientSocketCompare)->content);
     if(NULL == client)
     {
         //use yunba mqtt by default
-        return 0x13;
+        return MQTTVERSION_YUNBA_3_1;
     }else{
 
         Log(TRACE_MINIMUM, -1, "mqttversion is :%d", client->MQTTVersion);
         if(client->MQTTVersion == 0)
         {
-            return 0x13;
+            return MQTTVERSION_YUNBA_3_1;
         }else{
             return client->MQTTVersion;
         }

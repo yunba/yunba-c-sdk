@@ -155,19 +155,7 @@
  * Return code: All 65535 MQTT msgids are being used
  */
 #define MQTTASYNC_NO_MORE_MSGIDS -10
-
-/**
- * Default MQTT version to connect with.  Use 3.1.1 then fall back to 3.1
- */
-#define MQTTVERSION_DEFAULT 0
-/**
- * MQTT version to connect with: 3.1
- */
-#define MQTTVERSION_3_1 3
-/**
- * MQTT version to connect with: 3.1.1
- */
-#define MQTTVERSION_3_1_1 4
+     
 /**
  * Bad return code from subscribe, as defined in the 3.1.1 specification
  */

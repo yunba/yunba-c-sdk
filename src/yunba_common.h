@@ -21,6 +21,23 @@
 typedef int ssize_t;
 #endif
 
+
+/**
+ * Default MQTT version to connect with.  Use 3.1.1 then fall back to 3.1
+ */
+#define MQTTVERSION_DEFAULT 0
+/**
+ * MQTT version to connect with: 3.1
+ */
+#define MQTTVERSION_3_1 3
+/**
+ * MQTT version to connect with: 3.1.1
+ */
+#define MQTTVERSION_3_1_1 4
+/**
+ * Yunba MQTT version to connect with: 3.1.0
+ */
+#define MQTTVERSION_YUNBA_3_1 0x13
 typedef enum {
 	GET_ALIAS =1,
 	GET_ALIAS_ACK,

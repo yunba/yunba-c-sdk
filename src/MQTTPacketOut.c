@@ -51,7 +51,7 @@ int MQTTPacket_send_connect(Clients* client, int MQTTVersion)
 	packet.header.bits.type = CONNECT;
 	packet.header.bits.qos = 1;
 
-	len = ((MQTTVersion == 3 || MQTTVersion == 0x13)  ? 12 : 10) + strlen(client->clientID)+2;
+	len = ((MQTTVersion == 3 || MQTTVersion == MQTTVERSION_YUNBA_3_1)  ? 12 : 10) + strlen(client->clientID)+2;
 	if (client->will)
 		len += strlen(client->will->topic)+2 + strlen(client->will->msg)+2;
 	if (client->username)
@@ -60,7 +60,7 @@ int MQTTPacket_send_connect(Clients* client, int MQTTVersion)
 		len += strlen(client->password)+2;
 
 	ptr = buf = malloc(len);
-    if(MQTTVersion == 3 || MQTTVersion == 0x13)
+    if(MQTTVersion == 3 || MQTTVersion == MQTTVERSION_YUNBA_3_1)
     {
         writeUTF(&ptr, "MQIsdp");
     }else
@@ -181,7 +181,7 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, uint64_t msgid, int dup,
 
 	ptr = data = malloc(datalen);
 
-    if(mqtt_version == 0x13)
+    if(mqtt_version == MQTTVERSION_YUNBA_3_1)
     {
         writeInt64(&ptr, msgid);
     }else{
@@ -221,7 +221,7 @@ void* MQTTPacket_suback(unsigned char aHeader, char* data, size_t datalen, netwo
 
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
-    if(mqtt_version == 0x13)
+    if(mqtt_version == MQTTVERSION_YUNBA_3_1)
     {
         pack->msgId = readInt64(&curdata);
     }else{
@@ -269,7 +269,7 @@ int MQTTPacket_send_unsubscribe(List* topics, uint64_t msgid, int dup, networkHa
 		datalen += strlen((char*)(elem->content));
 	ptr = data = malloc(datalen);
 
-    if(0x13 == mqtt_version)
+    if(MQTTVERSION_YUNBA_3_1 == mqtt_version)
     {
         writeInt64(&ptr, msgid);
     }else{

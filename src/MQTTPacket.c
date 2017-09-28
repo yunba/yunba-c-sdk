@@ -189,7 +189,7 @@ int MQTTPacket_send(networkHandles* net, Header header, char* buffer, size_t buf
 	{
 		char* ptraux = buffer;
 		uint64_t msgId = 0;
-        if(mqtt_version == 0x13)
+        if(mqtt_version == MQTTVERSION_YUNBA_3_1)
         {
             msgId = readInt64(&ptraux);
         }else{
@@ -248,7 +248,7 @@ int MQTTPacket_sends(networkHandles* net, Header header, int count, char** buffe
 	{   /* persist PUBLISH QoS1 and Qo2 */
 		char *ptraux = buffers[2];
         uint64_t msgId = 0;
-        if(mqtt_version == 0x13)
+        if(mqtt_version == MQTTVERSION_YUNBA_3_1)
         {
              msgId = readInt64(&ptraux);
         }else{
@@ -577,7 +577,7 @@ void* MQTTPacket_publish(unsigned char aHeader, char* data, size_t datalen, netw
 		goto exit;
 	}
 	if (pack->header.bits.qos > 0)  /* Msgid only exists for QoS 1 or 2 */
-        if(mqtt_version == 0x13)
+        if(mqtt_version == MQTTVERSION_YUNBA_3_1)
         {
             pack->msgId = readInt64(&curdata);
         }
@@ -635,7 +635,7 @@ int MQTTPacket_send_ack(int type, uint64_t msgid, int dup, networkHandles *net)
 	    header.bits.qos = 1;
 
     //check this client's version
-    if(mqtt_version == 0x13)
+    if(mqtt_version == MQTTVERSION_YUNBA_3_1)
     {
         writeInt64(&ptr, msgid);
         len = 8;
@@ -757,7 +757,7 @@ void* MQTTPacket_ack(unsigned char aHeader, char* data, size_t datalen, networkH
 	FUNC_ENTRY;
 	pack->header.byte = aHeader;
 
-    if(mqtt_version == 0x13)
+    if(mqtt_version == MQTTVERSION_YUNBA_3_1)
     {
         pack->msgId = readInt64(&curdata);
     }else{
@@ -858,7 +858,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
         int mqtt_version = get_client_mqtt_version_from_network_handler(net);
 
         
-        if(mqtt_version == 0x13)
+        if(mqtt_version == MQTTVERSION_YUNBA_3_1)
         {
             writeInt64(&ptr, pack->msgId);
         }else{
