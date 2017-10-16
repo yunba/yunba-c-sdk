@@ -1031,6 +1031,7 @@ int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options,
     if(options->MQTTVersion == 0)
     {
         m->c->MQTTVersion = 0x13;
+        options->MQTTVersion = 0x13;
     }
 
 	if ((rc = MQTTClient_connectURIVersion(handle, options, serverURI, options->MQTTVersion, start, millisecsTimeout)) != MQTTCLIENT_SUCCESS)
