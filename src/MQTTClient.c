@@ -1028,6 +1028,10 @@ int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* options,
 	m->c->password = options->password;
 	m->c->retryInterval = options->retryInterval;
     m->c->MQTTVersion = options->MQTTVersion;
+    if(options->MQTTVersion == 0)
+    {
+        m->c->MQTTVersion = 0x13;
+    }
 
 	if ((rc = MQTTClient_connectURIVersion(handle, options, serverURI, options->MQTTVersion, start, millisecsTimeout)) != MQTTCLIENT_SUCCESS)
 
