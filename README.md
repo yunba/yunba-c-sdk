@@ -12,7 +12,7 @@ make
 sudo make install
 ```
 
-- 成功后会在 build/output/samples/ 下生成 stdouta_demo 和 stdinpub_present 两个可执行文件。*注意在使用 make 的时候如果你的电脑有多于一个的 C 标准库，就需要在 make 的时候加上`-stdlib=libstdc++`来选择标准库，否则会产生错误。*
+- 成功后会在 build/output/samples/ 下生成 stdouta_demo 和 stdinpub_present 两个可执行文件。
 
 - 使用 bash 或其它命令行工具进入可执行文件的路径，然后执行该程序。
 
@@ -59,3 +59,5 @@ mac, Apple LLVM version 6.1.0／OS X 10.11.6
 在 windows 上使用请 checkout 到 `feature/windows_building` 这个分支
 
 本例子基于 Eclipse paho
+
+**声明：对于自行修改 sdk 而导致的问题，云巴恕不提供技术支持。如果对于 sdk 有个性化需求，可以联系商务定制开发：xieting@yunba.io**
