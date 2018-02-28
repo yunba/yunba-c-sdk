@@ -206,7 +206,7 @@ typedef struct
  */
 typedef struct {
 	uint8_t ext_cmd; /* extended command */
-	uint8_t ext_buf_len; /* the length of parameters*/
+	uint16_t ext_buf_len; /* the length of parameters*/
 	uint8_t* ext_buf;  /* the parameters */
 } Ext_payload;
 
